@@ -25,12 +25,12 @@ function afterPerformanceLoaded(){
 	}	
 }
 
-function isPerformanceLoaded(){ // вкладка статистика 
+function isPerformanceLoaded(){ // ??????? ?????????? 
 	return $('#marketsPerformance>tbody>tr') 
 		&& $('#marketsPerformance>tbody>tr').length;
 }
 
-function isRateLoaded(){ // вкладка котировки 
+function isRateLoaded(){ // ??????? ????????? 
 	return $('#cross_rate_markets_stocks_1>tbody>tr') 
 		&& $('#cross_rate_markets_stocks_1>tbody>tr').length;
 }

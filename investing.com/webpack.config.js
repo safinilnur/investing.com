@@ -5,5 +5,17 @@ const path = require('path');
      output: {
          path: path.resolve(__dirname, 'dist'),
          filename: 'app.bundle.js'
+     },
+     module: {
+         loaders: [
+             {
+                 test: /\.js$/,
+                 loader: 'babel-loader',
+                 exclude: /node_modules/,
+                 query: {
+                     presets: ['es2015']
+                 }
+             }
+         ]
      }
  };

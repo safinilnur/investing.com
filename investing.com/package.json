@@ -4,13 +4,16 @@
   "description": "get more analytics from investing site",
   "main": "index.js",
   "scripts": {
-    "test": "echo Error no test specified && exit 1"
+    "build": "webpack"
   },
   "author": "safinilnur@mail.ru",
   "dependencies": {
-    "di": "0.0.1"
+    "node-di": "0.0.3"
   },
   "devDependencies": {
+    "babel-loader": "^7.1.2",
+    "babel-preset-env": "^1.6.0",
+    "babel-preset-es2015": "^6.24.1",
     "webpack": "^3.7.1"
   }
 }
