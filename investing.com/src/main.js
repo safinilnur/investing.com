@@ -3,14 +3,14 @@ function registerInfrastructure(){
         window._investStocks = {};
 
 	require('./ctx');
-	debugger;
+
     var ctx = _investStocks.ctx;
 
     //import './investing/consts/stockExchange';
     /***include('./investing/consts/stockExchange')***/
 
 	require('./investing/consts/stockExchange');
-	var s = ctx.get('InvestingStockExchanges');
+	require('./investing/pageLoader/loadYearStatistics');
 }
 
 registerInfrastructure();

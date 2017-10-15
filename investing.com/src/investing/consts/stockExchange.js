@@ -1,5 +1,3 @@
-debugger;
-
 _investStocks.ctx.register("InvestingStockExchanges")
     .asCtor(InvestingStockExchanges)
 
