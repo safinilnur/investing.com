@@ -10,7 +10,6 @@ function registerInfrastructure(){
     /***include('./investing/consts/stockExchange')***/
 
 	require('./investing/consts/stockExchange');
-	debugger;
 	var s = ctx.get('InvestingStockExchanges');
 }
 
