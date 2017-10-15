@@ -10,7 +10,14 @@ function registerInfrastructure(){
     /***include('./investing/consts/stockExchange')***/
 
 	require('./investing/consts/stockExchange');
-	require('./investing/pageLoader/loadYearStatistics');
+    require('./brokers/finam/stockList');
+    require('./brokers/tinkoff/stockList');
+    require('./investing/consts/InvestingStockList');
+    require('./brokers/brokersFactory');
+    require('./brokers/brokersList');
+    require('./investing/pageLoader/loadYearStatistics');
+
+    _investStocks.ctx.get('LoadYearStatistics').load();
 }
 
 registerInfrastructure();

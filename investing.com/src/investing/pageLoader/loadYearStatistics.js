@@ -1,7 +1,8 @@
 _investStocks.ctx.register("LoadYearStatistics")
-    .asCtor(LoadYearStatistics)
+    .asProto()
+    .asCtor(LoadYearStatistics).dependencies('BrokersFactory, FinamStockList');
 
-function LoadYearStatistics(){
+function LoadYearStatistics(brokersFactory, finamStockList){
     this.load = load;
 
     let _searchParams;
@@ -33,10 +34,50 @@ function LoadYearStatistics(){
     }
 
     function afterPerformanceLoaded(){
-        var rows = $('#marketsPerformance>tbody>tr');
-        for (var i=0; i< rows.length; i++){
-            if (lowEquity(rows[i]))
+        let rows = $('#marketsPerformance>tbody>tr');
+
+        for (let i=0; i< rows.length; i++){
+            if (lowEquity(rows[i])){
                 $(rows[i]).remove();
+            }
+
+            if (!notBrokerStocks(rows[i])){
+                addBrokerInfo(rows[i]);
+            }
+        }
+    }
+
+    function notBrokerStocks(row){
+        let brokersWithThisStock = getStockByBroker(getStockName(row));
+
+        return !brokersWithThisStock.length;
+    }
+
+    function getStockName(row){
+        return $($(row).find('td')[1]).find('a').html();
+    }
+
+
+
+    function getStockByBroker(name){
+        let finamStock = finamStockList.getByName(name);
+        let shortName = finamStock && finamStock.shortName;
+
+        return brokersFactory.getBrokersLogic()
+            .map(broker => ({
+                brokerName: broker.brokerName,
+                stock: broker.stockList.getByShortName(shortName)
+            }))
+            .filter(broker => broker.stock);
+    }
+
+    function addBrokerInfo(row){
+        let brokersWithThisStock = getStockByBroker(getStockName(row));
+
+        if (brokersWithThisStock.length){
+            let brokersTitle = brokersWithThisStock.map(broker=>broker.brokerName).join(" ,");
+            debugger;
+            $($(row).find('td')[1]).append("<span> ("+brokersTitle+")</span>");
         }
     }
 
@@ -51,11 +92,11 @@ function LoadYearStatistics(){
     }
 
     function lowEquity(row){
-        var dayEq = getColumnValue(row, 2);
-        var weekEq = getColumnValue(row,3);
-        var monthEq = getColumnValue(row, 4);
-        var yearEq = getColumnValue(row, 6);
-        var threeYearEq = getColumnValue(row, 7);
+        let dayEq = getColumnValue(row, 2);
+        let weekEq = getColumnValue(row,3);
+        let monthEq = getColumnValue(row, 4);
+        let yearEq = getColumnValue(row, 6);
+        let threeYearEq = getColumnValue(row, 7);
 
         return (_searchParams.minRateThreeYear && threeYearEq < _searchParams.minRateThreeYear)
             || (_searchParams.minRateYear && yearEq < _searchParams.minRateYear )
@@ -66,15 +107,17 @@ function LoadYearStatistics(){
     }
 
     function getColumnValue(row, colIndex){
-        var strValPercent = $($(row).find('td')[colIndex]).html();
-        var strVal = strValPercent.substring(0, strValPercent.length-1);
-        var intVal = parseInt(strVal);
+        let strValPercent = $($(row).find('td')[colIndex]).html();
+        let strVal = strValPercent.substring(0, strValPercent.length-1);
+        let intVal = parseInt(strVal);
         return intVal;
     }
+    
+
 
 
     function waitUntilLoaded(condition, callback) {
-        var bool = condition();
+        let bool = condition();
         if (!bool) {
             setTimeout(waitUntilLoaded, 100, condition, callback); // setTimeout(func, timeMS, params...)
         } else {
@@ -92,5 +135,5 @@ function LoadYearStatistics(){
         setTimeout(waitUntilLoaded, 100, isRateLoaded, callback);
     }
 
-    var stockMarket = _investStocks.ctx.get('InvestingStockExchanges').stockList;
+    let stockMarket = _investStocks.ctx.get('InvestingStockExchanges').stockList;
 }
