@@ -6,9 +6,6 @@ function registerInfrastructure(){
 
     var ctx = _investStocks.ctx;
 
-    //import './investing/consts/stockExchange';
-    /***include('./investing/consts/stockExchange')***/
-
 	require('./investing/consts/stockExchange');
     require('./brokers/finam/stockList');
     require('./brokers/tinkoff/stockList');
@@ -16,8 +13,16 @@ function registerInfrastructure(){
     require('./brokers/brokersFactory');
     require('./brokers/brokersList');
     require('./investing/pageLoader/loadYearStatistics');
+    require('./helpers/htmlDecoder');
+    require('./investing/userData/favouriteStoks');
+    require('./investing/favouriteStocksAnalyzer/favouriteStocksAnalyzer');
+    require('./investing/consts/stockRecommendations');
+    require('../styles/CssStockRecommendations');
+    require('./investing/services/InvestingAvailablefunctions');
 
-    _investStocks.ctx.get('LoadYearStatistics').load();
+    _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
+    _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
+
 }
 
 registerInfrastructure();

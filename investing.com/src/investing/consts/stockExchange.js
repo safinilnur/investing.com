@@ -4,7 +4,8 @@ _investStocks.ctx.register("InvestingStockExchanges")
 function InvestingStockExchanges(){
     this.stockList = {
         NYSE_AMEX_COMPOSITE: "NYSE Composite",
-        NASDAQ_COMPOSITE: "NASDAQ Composite"
+        NASDAQ_COMPOSITE: "NASDAQ Composite",
+        USA_STOCKS: "США - все акции",
     };
 }
 

@@ -1,8 +1,8 @@
 _investStocks.ctx.register("LoadYearStatistics")
     .asProto()
-    .asCtor(LoadYearStatistics).dependencies('BrokersFactory, FinamStockList');
+    .asCtor(LoadYearStatistics).dependencies('BrokersFactory, FinamStockList, HtmlDecoder');
 
-function LoadYearStatistics(brokersFactory, finamStockList){
+function LoadYearStatistics(brokersFactory, finamStockList, htmlDecoder){
     this.load = load;
 
     let _searchParams;
@@ -18,18 +18,18 @@ function LoadYearStatistics(brokersFactory, finamStockList){
     
     function getDefaultSearchParams(){
         return {
-            market: stockMarket.NYSE_AMEX_COMPOSITE,
+            market: stockMarket.USA_STOCKS,
             minRateDay: 0,
-            minRateYear: 60,
+            minRateYear: 80,
             maxRateYear: 600,
             minRateMonth:0,
-            minRateThreeYear: 70,
+            minRateThreeYear: 150,
             minRateWeek: 0
         };
     }
 
     function run(){
-        openNASDAQ(openPerformance);
+        chooseStockMarket(openPerformance);
         waitUntilLoaded(isPerformanceLoaded, afterPerformanceLoaded);
     }
 
@@ -54,7 +54,8 @@ function LoadYearStatistics(brokersFactory, finamStockList){
     }
 
     function getStockName(row){
-        return $($(row).find('td')[1]).find('a').html();
+        debugger;
+        return htmlDecoder.decode($($(row).find('td')[1]).find('a').html());
     }
 
 
@@ -126,13 +127,19 @@ function LoadYearStatistics(brokersFactory, finamStockList){
     }
 
     function openPerformance(){
-        $('#filter_performance').click();
+        if (!$('#filter_performance.toggled').length){
+            $('#filter_performance').click();
+        }
     }
 
-    function openNASDAQ(callback){
-        $('#stocksFilter').val(_searchParams.market);
-        doStocksFilter('select',$('#stocksFilter'));
-        setTimeout(waitUntilLoaded, 100, isRateLoaded, callback);
+    function chooseStockMarket(callback){
+        if ($('#stocksFilter').val() == _searchParams.market){
+            callback();
+        }else{
+            $('#stocksFilter').val(_searchParams.market);
+            doStocksFilter('select',$('#stocksFilter'));
+            setTimeout(waitUntilLoaded, 100, isRateLoaded, callback);
+        }   
     }
 
     let stockMarket = _investStocks.ctx.get('InvestingStockExchanges').stockList;

@@ -27,6 +27,19 @@ function InvestingStockList(){
 
     function ctor() {
         addStock("BA", "Boeing");
+        addStock("MTW", "Manitowoc");
+        addStock("KBH", "KB Home");
+        addStock("DXC", "DXC Technology");
+        addStock("COL", "Rockwell Collins");
+        addStock("TER", "Teradyne");
+        addStock("OSK", "Oshkosh");
+        addStock("TCI", "Transcontinental");
+        addStock("AGM", "Federal Agricultural Mortg.");
+        addStock("MTD", "Mettler-Toledo");
+        addStock("MLP", "Maui Land&Pineapple");
+        addStock("GDOT", "Green Dot");
+
+        addStock("AMAT", "Applied Materials");
     }
 
     function addStock(shortName, name){
