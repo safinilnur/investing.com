@@ -911,7 +911,6 @@ function LoadYearStatistics(brokersFactory, finamStockList, htmlDecoder) {
     }
 
     function getStockName(row) {
-        debugger;
         return htmlDecoder.decode($($(row).find('td')[1]).find('a').html());
     }
 
@@ -936,7 +935,6 @@ function LoadYearStatistics(brokersFactory, finamStockList, htmlDecoder) {
             var brokersTitle = brokersWithThisStock.map(function (broker) {
                 return broker.brokerName;
             }).join(" ,");
-            debugger;
             $($(row).find('td')[1]).append("<span> (" + brokersTitle + ")</span>");
         }
     }
@@ -1042,21 +1040,35 @@ function FinamFavouriteStocks() {
         urlBase = "https://ru.investing.com/equities/";
         _stocks = [];
 
-        add("NVIDIA", "nvidia-corp");
-        add("Netflix", "netflix,-inc.");
-        add("boeing", "boeing-co");
-        add("Alibaba", "alibaba");
-        add("AMD", "adv-micro-device");
-        add("Micron", "micron-tech");
-        add("Applied materials", "applied-matls-inc");
-        add("DXC Technology", "comp-science");
-        add("Transcontinental", "transcontinental-realty-investors");
-        add("Nutrisystems", "nutrisystems");
-        add("Extreme-networks", "extreme-networks");
+        add("NVIDIA", "nvidia-corp", true);
+        add("Netflix", "netflix,-inc.", true);
+        add("boeing", "boeing-co", true);
+        add("Alibaba", "alibaba", true);
+        add("AMD", "adv-micro-device", true);
+        add("Micron", "micron-tech", true);
+        add("Applied materials", "applied-matls-inc", true);
+        add("DXC Technology", "comp-science", false);
+        add("Transcontinental", "transcontinental-realty-investors", false);
+        add("Nutrisystems", "nutrisystems", false);
+        add("Extreme-networks", "extreme-networks", false);
+        add("Tesla", "tesla-motors", true);
+        add("paypal", "paypal-holdings-inc", true);
+        add("google", "google-inc", true);
+        add("apple", "apple-computer-inc", true);
+        add("autodesk", "autodesk-inc", true);
+        add("microsoft", "microsoft-corp", true);
+        add("adobe", "adobe-sys-inc", true);
+        add("facebook", "facebook-inc", true);
+        add("visa", "visa-inc", true);
+        add("activision", "activision-inc", true);
+        add("salesforce", "salesforce-com", true);
+        add("amazon", "amazon-com-inc", true);
     }
 
-    function add(name, url) {
-        _stocks.push({ name: name, url: urlBase + url });
+    function add(name, url, isInFinam) {
+        if (isInFinam) {
+            _stocks.push({ name: name, url: urlBase + url, id: url });
+        }
     }
 
     ctor();
@@ -1085,7 +1097,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function loadData() {
-        debugger;
         if (hasNotLoadedItems()) {
             var itemToLoad = getNotLoadedItem();
 
@@ -1100,29 +1111,51 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                     }
                 } else {
                     showStatistics();
-                    clearPreviousData(); // comment for debug
+                    //clearPreviousData(); // comment for debug
                 }
             }
-        } // else { showStatistics(); } // uncomment for debug
+        } else {
+            showStatistics();
+        } // uncomment for debug
     }
 
     function showStatistics() {
         var items = getStorageData();
 
-        items = items.sort(function (a, b) {
-            return b.technicalSummary - a.technicalSummary;
-        });
+        if (!items.length) {
+            return;
+        }
 
         debugger;
+        items = items.sort(sortStocksByPriority);
+
         splitPorfolioByFiveStocks(items);
 
         var itemsHtml = items.map(function (i) {
-            return "<tr>" + "<td>" + i.name + "</td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "</tr>";
+            return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "</tr>";
         });
-        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr><th>Название</th><th>Тех. рекомендация</th><th>Цена</th><th>Позиция</th></tr>" + itemsHtml + "<tr><td colspan='4'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='4'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "</table></div>";
+        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "</tr>" + itemsHtml + "<tr><td colspan='6'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='6'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "</table></div>";
         $('body').html(resultHtml);
 
         CssStockRecommendations.appendStyle();
+        initializeCheckBoxes(items);
+    }
+
+    function initializeCheckBoxes(items) {
+        items.forEach(function (i) {
+            if (i.countToBuy) {
+                $('#' + i.id).checked = true;
+            }
+        });
+    }
+
+    function sortStocksByPriority(a, b) {
+        // todo move to extra module
+        if (a.technicalSummary < b.technicalSummary) // sort by technicalSummary
+            return 1;else if (a.technicalSummary > b.technicalSummary) return -1;else {
+            if (a.yearRate < b.yearRate) // then by yearRate
+                return 1;else if (a.yearRate > b.yearRate) return -1;else return 0;
+        }
     }
 
     function splitPorfolioByFiveStocks(items) {
@@ -1159,16 +1192,40 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function attachStockInfo(item) {
-        var hourTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(4)').html();
-        var dayTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(5)').html();
-        var minimalEstimation = FinamStockRecommendationTypes.getMinimalEstimation([hourTechnioalSummary, dayTechnioalSummary]);
-
-        var stockPrice = parseFloat($('#last_last').html().replace(",", "."));
+        var minimalEstimation = getMinimalEstimation();
+        var stockPrice = getStockPrice();
+        var yearRate = getYearRate();
 
         item.technicalSummary = minimalEstimation;
         item.stockPrice = stockPrice;
         item.dataCollected = true;
+        item.yearRate = yearRate;
         saveItemInStorage(item);
+    }
+
+    function getYearRate() {
+        if ($('#leftColumn > div.clear.overviewDataTable > div:nth-child(13) > span.float_lang_base_1').html() == "Изменение за год") {
+            var rateWithPercent = $('#leftColumn > div.clear.overviewDataTable > div:nth-child(13) > span.float_lang_base_2.bold').html();
+            var rate = parseFloat(rateWithPercent.slice(0, -1).replace(",", "."));
+
+            return rate;
+        }
+    }
+
+    function getStockPrice() {
+        // todo move
+        var stockPrice = parseFloat($('#last_last').html().replace(",", "."));
+
+        return stockPrice;
+    }
+
+    function getMinimalEstimation() {
+        // todo move to separate module
+        var hourTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(4)').html();
+        var dayTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(5)').html();
+        var minimalEstimation = FinamStockRecommendationTypes.getMinimalEstimation([hourTechnioalSummary, dayTechnioalSummary]);
+
+        return minimalEstimation;
     }
 
     function hasNotLoadedItems() {
@@ -1183,11 +1240,8 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
     function setInitialData() {
         var dataToCollect = FinamFavouriteStocks.getAll().map(function (s) {
-            return {
-                name: s.name,
-                url: s.url,
-                dataCollected: false
-            };
+            s.dataCollected = false;
+            return s;
         });
 
         saveData(dataToCollect);

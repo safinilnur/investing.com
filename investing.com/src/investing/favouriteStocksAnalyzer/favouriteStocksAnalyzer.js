@@ -16,7 +16,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function loadData(){
-        debugger;
         if (hasNotLoadedItems()){
             var itemToLoad = getNotLoadedItem();
 
@@ -31,37 +30,81 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                     }
                 } else {
                     showStatistics();
-                    clearPreviousData(); // comment for debug
+                    //clearPreviousData(); // comment for debug
                 }
             }
-        } // else { showStatistics(); } // uncomment for debug
+        }  else { showStatistics(); } // uncomment for debug
     }
 
     function showStatistics(){
         let items = getStorageData();
 
-        items = items.sort((a, b) => (b.technicalSummary - a.technicalSummary));
+        if (!items.length){
+            return;
+        }
 
         debugger;
+        items = items.sort(sortStocksByPriority);
+
         splitPorfolioByFiveStocks(items);
 
-        let itemsHtml = items.map(i => {
-            return "<tr>" +
-                "<td>" + i.name + "</td>" +
+        let itemsHtml = items.map(i =>
+            "<tr>" +
+                "<td><a href='"+i.url+"'>" + i.name + "</a></td>" +
                 "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" +
                 "<td>"+i.stockPrice+"</td>"+
+                "<td>"+i.yearRate+"</td>"+
                 "<td>"+(i.countToBuy||"")+"</td>"+
-                "</tr>"
-        });
+                "<td><input type='checkbox' id='"+i.id+"'/></td>"+
+            "</tr>"
+        );
         let resultHtml = "<div class='stock-recommedations'><table>" +
-            "<tr><th>Название</th><th>Тех. рекомендация</th><th>Цена</th><th>Позиция</th></tr>" +
+            "<tr>" +
+                "<th>Название</th>" +
+                "<th>Тех. рекомендация</th>" +
+                "<th>Цена</th>" +
+                "<th>Годовой рост</th>" +
+                "<th>Позиция</th>" +
+                "<th>Участие</th>" +
+            "</tr>" +
+
             itemsHtml+
-            "<tr><td colspan='4'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
-            "<tr><td colspan='4'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
+
+            "<tr><td colspan='6'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
+            "<tr><td colspan='6'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
             "</table></div>";
         $('body').html(resultHtml);
 
         CssStockRecommendations.appendStyle();
+        initializeCheckBoxes(items);
+    }
+
+    function initializeCheckBoxes(items){
+        items.forEach(i=>{
+            if (i.countToBuy){
+                $('#'+i.id).attr('checked','checked');
+            }
+            $('#'+i.id).click((el)=>{
+                var items = getStorageData();
+                var id = $(e).id();
+                var stock = items.find(e=> e.id == id);
+            });
+        });
+    }
+
+    function sortStocksByPriority(a, b){ // todo move to extra module
+        if (a.technicalSummary < b.technicalSummary) // sort by technicalSummary
+            return 1;
+        else if (a.technicalSummary > b.technicalSummary)
+            return -1;
+        else{
+            if (a.yearRate < b.yearRate) // then by yearRate
+                return 1;
+            else if (a.yearRate > b.yearRate)
+                return -1;
+            else
+                return 0;
+        }
     }
 
     function splitPorfolioByFiveStocks(items){
@@ -98,16 +141,39 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function attachStockInfo(item){
-        let hourTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(4)').html();
-        let dayTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(5)').html();
-        let minimalEstimation = FinamStockRecommendationTypes.getMinimalEstimation([hourTechnioalSummary, dayTechnioalSummary]);
-
-        let stockPrice = parseFloat($('#last_last').html().replace(",","."));
+        let minimalEstimation = getMinimalEstimation();
+        let stockPrice = getStockPrice();
+        let yearRate = getYearRate();
 
         item.technicalSummary =minimalEstimation;
         item.stockPrice = stockPrice;
         item.dataCollected = true;
+        item.yearRate = yearRate;
         saveItemInStorage(item);
+    }
+
+    function getYearRate(){
+        if ($('#leftColumn > div.clear.overviewDataTable > div:nth-child(13) > span.float_lang_base_1').html() == "Изменение за год")
+        {
+            var rateWithPercent = $('#leftColumn > div.clear.overviewDataTable > div:nth-child(13) > span.float_lang_base_2.bold').html();
+            var rate =  parseFloat(rateWithPercent.slice(0, -1).replace(",","."));
+
+            return rate;
+        }
+    }
+
+    function getStockPrice(){ // todo move
+        let stockPrice = parseFloat($('#last_last').html().replace(",","."));
+
+        return stockPrice;
+    }
+
+    function getMinimalEstimation(){ // todo move to separate module
+        let hourTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(4)').html();
+        let dayTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(5)').html();
+        let minimalEstimation = FinamStockRecommendationTypes.getMinimalEstimation([hourTechnioalSummary, dayTechnioalSummary]);
+
+        return minimalEstimation;
     }
 
     function hasNotLoadedItems(){
@@ -119,11 +185,10 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function setInitialData(){
-        var dataToCollect = FinamFavouriteStocks.getAll().map(s=> ({
-            name: s.name,
-            url: s.url,
-            dataCollected: false
-        }));
+        var dataToCollect = FinamFavouriteStocks.getAll().map(s=> {
+            s.dataCollected = false;
+            return s;
+        });
 
         saveData(dataToCollect);
     }

@@ -16,21 +16,35 @@ function FinamFavouriteStocks(){
         urlBase = "https://ru.investing.com/equities/";
         _stocks = [];
 
-        add("NVIDIA", "nvidia-corp");
-        add("Netflix", "netflix,-inc.");
-        add("boeing", "boeing-co");
-        add("Alibaba", "alibaba");
-        add("AMD", "adv-micro-device");
-        add("Micron", "micron-tech");
-        add("Applied materials", "applied-matls-inc");
-        add("DXC Technology", "comp-science");
-        add("Transcontinental", "transcontinental-realty-investors");
-        add("Nutrisystems", "nutrisystems");
-        add("Extreme-networks", "extreme-networks");
+        add("NVIDIA", "nvidia-corp", true);
+        add("Netflix", "netflix,-inc.", true);
+        add("boeing", "boeing-co", true);
+        add("Alibaba", "alibaba", true);
+        add("AMD", "adv-micro-device", true);
+        add("Micron", "micron-tech", true);
+        add("Applied materials", "applied-matls-inc", true);
+        add("DXC Technology", "comp-science", false);
+        add("Transcontinental", "transcontinental-realty-investors", false);
+        add("Nutrisystems", "nutrisystems", false);
+        add("Extreme-networks", "extreme-networks", false);
+        add("Tesla", "tesla-motors", true);
+        add("paypal", "paypal-holdings-inc", true);
+        add("google", "google-inc", true);
+        add("apple", "apple-computer-inc", true);
+        add("autodesk", "autodesk-inc", true);
+        add("microsoft", "microsoft-corp", true);
+        add("adobe", "adobe-sys-inc", true);
+        add("facebook", "facebook-inc", true);
+        add("visa", "visa-inc", true);
+        add("activision", "activision-inc", true);
+        add("salesforce", "salesforce-com", true);
+        add("amazon", "amazon-com-inc", true);
     }
 
-    function add(name, url) {
-        _stocks.push({name, url: urlBase + url});
+    function add(name, url, isInFinam) {
+        if (isInFinam){
+            _stocks.push({name, url: urlBase + url, id: url});
+        }
     }
 
     ctor();

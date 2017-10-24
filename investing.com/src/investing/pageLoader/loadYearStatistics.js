@@ -54,7 +54,6 @@ function LoadYearStatistics(brokersFactory, finamStockList, htmlDecoder){
     }
 
     function getStockName(row){
-        debugger;
         return htmlDecoder.decode($($(row).find('td')[1]).find('a').html());
     }
 
@@ -77,7 +76,6 @@ function LoadYearStatistics(brokersFactory, finamStockList, htmlDecoder){
 
         if (brokersWithThisStock.length){
             let brokersTitle = brokersWithThisStock.map(broker=>broker.brokerName).join(" ,");
-            debugger;
             $($(row).find('td')[1]).append("<span> ("+brokersTitle+")</span>");
         }
     }
