@@ -19,6 +19,8 @@ function registerInfrastructure(){
     require('./investing/consts/stockRecommendations');
     require('../styles/CssStockRecommendations');
     require('./investing/services/InvestingAvailablefunctions');
+    require('./spbexchange.ru/getStockList');
+    require('./spbexchange.ru/SpbStockList');
 
     _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
     _investStocks.ctx.get('InvestingAvailablefunctions').getAll();

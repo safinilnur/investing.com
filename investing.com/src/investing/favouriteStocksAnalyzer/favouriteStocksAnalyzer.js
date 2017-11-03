@@ -16,24 +16,89 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function loadData(){
-        if (hasNotLoadedItems()){
-            var itemToLoad = getNotLoadedItem();
+        if (hasNotLoadedItems("main")){
+            var itemToLoad = getNotLoadedItem("main");
 
             if (location.href != itemToLoad.url){
                 location.href = itemToLoad.url;
             } else {
-                attachStockInfo(itemToLoad);
-                if (hasNotLoadedItems()){
-                    var itemToLoad = getNotLoadedItem();
+                attachMainStockInfo(itemToLoad);
+                if (hasNotLoadedItems("main")){
+                    var itemToLoad = getNotLoadedItem("main");
                     if (location.href != itemToLoad.url){
                         location.href = itemToLoad.url;
                     }
                 } else {
+                    loadHistoricalData();
+                }
+            }
+        }  else { loadHistoricalData(); }
+    }
+
+    function loadHistoricalData(){
+        if (hasNotLoadedItems("historical")){
+            var itemToLoad = getNotLoadedItem("historical");
+
+            if (location.href != itemToLoad.url+"-historical-data"){
+                location.href = itemToLoad.url+"-historical-data";
+            } else {
+                attachHistoricalStockInfo(itemToLoad);// todo
+                if (hasNotLoadedItems("historical")){
+                    var itemToLoad = getNotLoadedItem("historical");
+                    if (location.href != itemToLoad.url+"-historical-data"){
+                        location.href = itemToLoad.url+"-historical-data";
+                    }
+                } else {
+                    setInitialDistribution();
                     showStatistics();
                     //clearPreviousData(); // comment for debug
                 }
             }
         }  else { showStatistics(); } // uncomment for debug
+    }
+
+    function attachHistoricalStockInfo(item){
+        var rows = $('.historicalTbl tbody tr');
+        if (rows.length<15)
+            throw "Rows count should be more than 15 for historical data. Something went wrong..."
+
+        item.historicalData = {};
+
+        for (var i=0; i<rows.length; i++){
+            var row = rows[i];
+            item.historicalData[i] = {
+                maxPrice: parseFloat($($(row).find('td')[3]).html().replace(',','.'))
+            };
+        }
+
+        item.historicalData.maxLastTenDaysPrice = item.historicalData[0].maxPrice;
+        for (var i=1; i<10; i++){
+            if (item.historicalData.maxLastTenDaysPrice < item.historicalData[i].maxPrice)
+                item.historicalData.maxLastTenDaysPrice = item.historicalData[i].maxPrice;
+        }
+
+        debugger;
+        item.historicalData.percentTenDaysFall = item.historicalData.maxLastTenDaysPrice > item.stockPrice
+            ? Math.round((item.historicalData.maxLastTenDaysPrice - item.stockPrice)/item.stockPrice*100 * 100)/100
+            : 0;
+
+        item.historicalDataCollected = true;
+        saveItemInStorage(item);
+    }
+    
+    function setInitialDistribution(){
+        let items = getStorageData();
+
+        if (!items || !items.length){
+            return;
+        }
+
+        items = items.sort(sortStocksByPriority);
+
+        for (var i=0; i<5; i++)
+            items[i].inPortfolio = true;
+        
+        saveData(items);
     }
 
     function showStatistics(){
@@ -43,10 +108,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             return;
         }
 
-        debugger;
-        items = items.sort(sortStocksByPriority);
-
-        splitPorfolioByFiveStocks(items);
+        splitMoneyByChoosenStocks(items);
 
         let itemsHtml = items.map(i =>
             "<tr>" +
@@ -54,6 +116,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                 "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" +
                 "<td>"+i.stockPrice+"</td>"+
                 "<td>"+i.yearRate+"</td>"+
+                "<td>"+i.historicalData.percentTenDaysFall+"</td>"+
                 "<td>"+(i.countToBuy||"")+"</td>"+
                 "<td><input type='checkbox' id='"+i.id+"'/></td>"+
             "</tr>"
@@ -64,14 +127,15 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                 "<th>Тех. рекомендация</th>" +
                 "<th>Цена</th>" +
                 "<th>Годовой рост</th>" +
+                "<th>10дн падение</th>" +
                 "<th>Позиция</th>" +
                 "<th>Участие</th>" +
             "</tr>" +
 
             itemsHtml+
 
-            "<tr><td colspan='6'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
-            "<tr><td colspan='6'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
+            "<tr><td colspan='7'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
+            "<tr><td colspan='7'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
             "</table></div>";
         $('body').html(resultHtml);
 
@@ -84,10 +148,14 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             if (i.countToBuy){
                 $('#'+i.id).attr('checked','checked');
             }
-            $('#'+i.id).click((el)=>{
+            $('#'+i.id).unbind('click');
+            $('#'+i.id).bind('click', (el)=>{
                 var items = getStorageData();
-                var id = $(e).id();
+                var id = $(el.currentTarget).attr('id')
                 var stock = items.find(e=> e.id == id);
+                stock.inPortfolio = $(el.currentTarget).is(':checked');
+                saveItemInStorage(stock);
+                showStatistics();
             });
         });
     }
@@ -107,13 +175,18 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         }
     }
 
-    function splitPorfolioByFiveStocks(items){
+    function splitMoneyByChoosenStocks(items){
         var curVolume = FinamFavouriteStocks.portfolioVolume;
-        var perStock = curVolume/5;
+        var positionsCount = items.filter(item => item.inPortfolio).length;
+        var perStock = curVolume/positionsCount;
 
         var sum = 0;
-        for (var i=0; i<5; i++){
+        for (var i=0; i<items.length; i++){
             let item = items[i];
+
+            if (!item.inPortfolio)
+                continue;
+
             item.countToBuy = parseInt(perStock / item.stockPrice);
             sum += item.countToBuy * item.stockPrice;
         }
@@ -122,8 +195,12 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         while(portfolioChanged){
             portfolioChanged = false;
 
-            for (var i=0; i<5; i++){
+            for (var i=0; i<items.length; i++){
                 let item = items[i];
+
+                if (!item.inPortfolio)
+                    continue;
+
                 if (item.stockPrice < getAvailabeDollarsAmount(items)){
                     item.countToBuy++;
                     portfolioChanged = true;
@@ -140,14 +217,14 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         return FinamFavouriteStocks.portfolioVolume - total;
     }
 
-    function attachStockInfo(item){
+    function attachMainStockInfo(item){
         let minimalEstimation = getMinimalEstimation();
         let stockPrice = getStockPrice();
         let yearRate = getYearRate();
 
         item.technicalSummary =minimalEstimation;
         item.stockPrice = stockPrice;
-        item.dataCollected = true;
+        item.mainDataCollected = true;
         item.yearRate = yearRate;
         saveItemInStorage(item);
     }
@@ -163,7 +240,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function getStockPrice(){ // todo move
-        let stockPrice = parseFloat($('#last_last').html().replace(",","."));
+        let stockPrice = parseFloat($('#last_last').html().replace(".","").replace(",","."));
 
         return stockPrice;
     }
@@ -176,17 +253,18 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         return minimalEstimation;
     }
 
-    function hasNotLoadedItems(){
-        return getNotLoadedItem() != null;
+    function hasNotLoadedItems(type){
+        return getNotLoadedItem(type) != null;
     }
 
-    function getNotLoadedItem(){
-        return getStorageData().find(s=> !s.dataCollected);
+    function getNotLoadedItem(type){
+        var propName = type+"DataCollected";
+        return getStorageData().find(s=> !s[propName]);
     }
 
     function setInitialData(){
         var dataToCollect = FinamFavouriteStocks.getAll().map(s=> {
-            s.dataCollected = false;
+            s.mainDataCollected = false;
             return s;
         });
 

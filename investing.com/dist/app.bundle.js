@@ -90,6 +90,8 @@ function registerInfrastructure() {
     __webpack_require__(13);
     __webpack_require__(14);
     __webpack_require__(15);
+    __webpack_require__(16);
+    __webpack_require__(17);
 
     _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
     _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
@@ -1063,11 +1065,17 @@ function FinamFavouriteStocks() {
         add("activision", "activision-inc", true);
         add("salesforce", "salesforce-com", true);
         add("amazon", "amazon-com-inc", true);
+
+        add("jp-morgan", "jp-morgan-chase", true);
+        add("momo", "momo-inc", true);
+        add("transocea", "transocea-ltd", true);
+        add("celgene", "celgene-corp", true);
     }
 
     function add(name, url, isInFinam) {
         if (isInFinam) {
-            _stocks.push({ name: name, url: urlBase + url, id: url });
+            var id = url.replace(/[.,]/g, "");
+            _stocks.push({ name: name, url: urlBase + url, id: id });
         }
     }
 
@@ -1097,19 +1105,42 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function loadData() {
-        if (hasNotLoadedItems()) {
-            var itemToLoad = getNotLoadedItem();
+        if (hasNotLoadedItems("main")) {
+            var itemToLoad = getNotLoadedItem("main");
 
             if (location.href != itemToLoad.url) {
                 location.href = itemToLoad.url;
             } else {
-                attachStockInfo(itemToLoad);
-                if (hasNotLoadedItems()) {
-                    var itemToLoad = getNotLoadedItem();
+                attachMainStockInfo(itemToLoad);
+                if (hasNotLoadedItems("main")) {
+                    var itemToLoad = getNotLoadedItem("main");
                     if (location.href != itemToLoad.url) {
                         location.href = itemToLoad.url;
                     }
                 } else {
+                    loadHistoricalData();
+                }
+            }
+        } else {
+            loadHistoricalData();
+        }
+    }
+
+    function loadHistoricalData() {
+        if (hasNotLoadedItems("historical")) {
+            var itemToLoad = getNotLoadedItem("historical");
+
+            if (location.href != itemToLoad.url + "-historical-data") {
+                location.href = itemToLoad.url + "-historical-data";
+            } else {
+                attachHistoricalStockInfo(itemToLoad); // todo
+                if (hasNotLoadedItems("historical")) {
+                    var itemToLoad = getNotLoadedItem("historical");
+                    if (location.href != itemToLoad.url + "-historical-data") {
+                        location.href = itemToLoad.url + "-historical-data";
+                    }
+                } else {
+                    setInitialDistribution();
                     showStatistics();
                     //clearPreviousData(); // comment for debug
                 }
@@ -1119,6 +1150,45 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         } // uncomment for debug
     }
 
+    function attachHistoricalStockInfo(item) {
+        var rows = $('.historicalTbl tbody tr');
+        if (rows.length < 15) throw "Rows count should be more than 15 for historical data. Something went wrong...";
+
+        item.historicalData = {};
+
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            item.historicalData[i] = {
+                maxPrice: parseFloat($($(row).find('td')[3]).html().replace(',', '.'))
+            };
+        }
+
+        item.historicalData.maxLastTenDaysPrice = item.historicalData[0].maxPrice;
+        for (var i = 1; i < 10; i++) {
+            if (item.historicalData.maxLastTenDaysPrice < item.historicalData[i].maxPrice) item.historicalData.maxLastTenDaysPrice = item.historicalData[i].maxPrice;
+        }
+
+        debugger;
+        item.historicalData.percentTenDaysFall = item.historicalData.maxLastTenDaysPrice > item.stockPrice ? Math.round((item.historicalData.maxLastTenDaysPrice - item.stockPrice) / item.stockPrice * 100 * 100) / 100 : 0;
+
+        item.historicalDataCollected = true;
+        saveItemInStorage(item);
+    }
+
+    function setInitialDistribution() {
+        var items = getStorageData();
+
+        if (!items || !items.length) {
+            return;
+        }
+
+        items = items.sort(sortStocksByPriority);
+
+        for (var i = 0; i < 5; i++) {
+            items[i].inPortfolio = true;
+        }saveData(items);
+    }
+
     function showStatistics() {
         var items = getStorageData();
 
@@ -1126,15 +1196,12 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             return;
         }
 
-        debugger;
-        items = items.sort(sortStocksByPriority);
-
-        splitPorfolioByFiveStocks(items);
+        splitMoneyByChoosenStocks(items);
 
         var itemsHtml = items.map(function (i) {
-            return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "</tr>";
+            return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>" + i.historicalData.percentTenDaysFall + "</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "</tr>";
         });
-        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "</tr>" + itemsHtml + "<tr><td colspan='6'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='6'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "</table></div>";
+        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "</tr>" + itemsHtml + "<tr><td colspan='7'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='7'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "</table></div>";
         $('body').html(resultHtml);
 
         CssStockRecommendations.appendStyle();
@@ -1144,8 +1211,19 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     function initializeCheckBoxes(items) {
         items.forEach(function (i) {
             if (i.countToBuy) {
-                $('#' + i.id).checked = true;
+                $('#' + i.id).attr('checked', 'checked');
             }
+            $('#' + i.id).unbind('click');
+            $('#' + i.id).bind('click', function (el) {
+                var items = getStorageData();
+                var id = $(el.currentTarget).attr('id');
+                var stock = items.find(function (e) {
+                    return e.id == id;
+                });
+                stock.inPortfolio = $(el.currentTarget).is(':checked');
+                saveItemInStorage(stock);
+                showStatistics();
+            });
         });
     }
 
@@ -1158,13 +1236,19 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         }
     }
 
-    function splitPorfolioByFiveStocks(items) {
+    function splitMoneyByChoosenStocks(items) {
         var curVolume = FinamFavouriteStocks.portfolioVolume;
-        var perStock = curVolume / 5;
+        var positionsCount = items.filter(function (item) {
+            return item.inPortfolio;
+        }).length;
+        var perStock = curVolume / positionsCount;
 
         var sum = 0;
-        for (var i = 0; i < 5; i++) {
+        for (var i = 0; i < items.length; i++) {
             var item = items[i];
+
+            if (!item.inPortfolio) continue;
+
             item.countToBuy = parseInt(perStock / item.stockPrice);
             sum += item.countToBuy * item.stockPrice;
         }
@@ -1173,8 +1257,11 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         while (portfolioChanged) {
             portfolioChanged = false;
 
-            for (var i = 0; i < 5; i++) {
+            for (var i = 0; i < items.length; i++) {
                 var _item = items[i];
+
+                if (!_item.inPortfolio) continue;
+
                 if (_item.stockPrice < getAvailabeDollarsAmount(items)) {
                     _item.countToBuy++;
                     portfolioChanged = true;
@@ -1191,14 +1278,14 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         return FinamFavouriteStocks.portfolioVolume - total;
     }
 
-    function attachStockInfo(item) {
+    function attachMainStockInfo(item) {
         var minimalEstimation = getMinimalEstimation();
         var stockPrice = getStockPrice();
         var yearRate = getYearRate();
 
         item.technicalSummary = minimalEstimation;
         item.stockPrice = stockPrice;
-        item.dataCollected = true;
+        item.mainDataCollected = true;
         item.yearRate = yearRate;
         saveItemInStorage(item);
     }
@@ -1214,7 +1301,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
     function getStockPrice() {
         // todo move
-        var stockPrice = parseFloat($('#last_last').html().replace(",", "."));
+        var stockPrice = parseFloat($('#last_last').html().replace(".", "").replace(",", "."));
 
         return stockPrice;
     }
@@ -1228,19 +1315,20 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         return minimalEstimation;
     }
 
-    function hasNotLoadedItems() {
-        return getNotLoadedItem() != null;
+    function hasNotLoadedItems(type) {
+        return getNotLoadedItem(type) != null;
     }
 
-    function getNotLoadedItem() {
+    function getNotLoadedItem(type) {
+        var propName = type + "DataCollected";
         return getStorageData().find(function (s) {
-            return !s.dataCollected;
+            return !s[propName];
         });
     }
 
     function setInitialData() {
         var dataToCollect = FinamFavouriteStocks.getAll().map(function (s) {
-            s.dataCollected = false;
+            s.mainDataCollected = false;
             return s;
         });
 
@@ -1289,7 +1377,6 @@ function FinamStockRecommendationTypes() {
     this.convertRecommendationToString = convertRecommendationToString;
 
     function getMinimalEstimation(types) {
-        debugger;
         if (!types || !types.length) {
             return -2;
         }
@@ -1335,7 +1422,7 @@ function CssStockRecommendations() {
     }
 
     function getCssContent() {
-        return '\n        .stock-recommedations tr {       font-size: 16px;   font-family: cursive;        }\n        .stock-recommedations td,.stock-recommedations th {\n                min-width: 300px;\n                padding:5px 0 0 15px}\n\n            .stock-recommedations table {position: relative;text-align: left;margin: auto;}\n\n            .stock-recommedations  tr,.stock-recommedations th, .stock-recommedations td {\n                border: 1px solid;\n            }\n\n            .stock-recommedations th {\n                font-weight: 800;\n            }        \n        ';
+        return '\n        .stock-recommedations tr {       font-size: 16px;   font-family: cursive;        }\n        .stock-recommedations td,.stock-recommedations th {\n                padding:5px 0 0 15px}\n\n            .stock-recommedations table {position: relative;text-align: left;margin: auto;}\n\n            .stock-recommedations  tr,.stock-recommedations th, .stock-recommedations td {\n                border: 1px solid;\n            }\n\n            .stock-recommedations th {\n                font-weight: 800;\n            }        \n        ';
     }
 }
 
@@ -1352,8 +1439,667 @@ function InvestingAvailablefunctions() {
     this.getAll = getAll;
 
     function getAll() {
-        console.log("\n1) Sort your favourite list of stocks by technical recommendations. Run:\n_investStocks.ctx.get('FavouriteStocksAnalyzer').run();\n\n2) Get filtered USA stocks (filter by day, mont, year gain). \nGo to page Page: https://ru.investing.com/equities/united-states and run:\n_investStocks.ctx.get('LoadYearStatistics').load();     \n        ");
+        console.log("\n1) Sort your favourite list of stocks by technical recommendations. Run:\n_investStocks.ctx.get('FavouriteStocksAnalyzer').run();\n\n2) Get filtered USA stocks (filter by day, mont, year gain). \nGo to page Page: https://ru.investing.com/equities/united-states and run:\n_investStocks.ctx.get('LoadYearStatistics').load();  \n\n3) Get all stocks from spb exchange \nGo to page Page: http://www.spbexchange.ru/ru/stocks/inostrannye/Instruments.aspx and run:\n_investStocks.ctx.get('GetSpbStockList').GetSpbStockList();  \n        ");
     }
+}
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("GetSpbStockList").asCtor(GetSpbStockList);
+
+function GetSpbStockList() {
+    var _this = this;
+
+    this.getAllStocks = getAllStocks;
+
+    function getAllStocks() {
+        var data = [];
+        var urls = [];
+
+        for (var i = 1; i < 10; i++) {
+            var url = 'ctl00$BXContent$iii$pager$ctl00$ctl0' + i;
+            urls.push(url);
+        }
+        for (var i = 10; i < 21; i++) {
+            var url = 'ctl00$BXContent$iii$pager$ctl00$ctl' + i;
+            urls.push(url);
+        }
+        for (var i = 2; i < 10; i++) {
+            var url = 'ctl00$BXContent$iii$pager$ctl00$ctl0' + i;
+            urls.push(url);
+        }
+        for (var i = 10; i < 17; i++) {
+            var url = 'ctl00$BXContent$iii$pager$ctl00$ctl' + i;
+            urls.push(url);
+        }
+
+        appendStocksData(data);
+        debugger;
+        collectByUrls(urls, data, urlsCollectedCallback);
+    }
+
+    function urlsCollectedCallback(data) {
+        data = data.filter(function (e) {
+            return e.name;
+        });
+
+        console.log(data);
+
+        var scriptStockCreator = "";
+        data.forEach(function (stock) {
+            scriptStockCreator += "addStock(\"" + stock.shortName + "\", \"" + stock.name + "\");\n";
+        });
+        console.log(scriptStockCreator);
+    }
+
+    function collectByUrls(urls, data, callback) {
+
+        if (!urls.length) {
+            callback(data);
+
+            return;
+        }
+
+        var url = urls.shift();
+        __doPostBack(url, '');
+
+        setTimeout(function () {
+            appendStocksData(data);
+            collectByUrls(urls, data, callback);
+        }, 400);
+    }
+
+    function appendStocksData(data) {
+        var rows = $('.izmen_info tbody tr');
+
+        for (var i = 0; i < rows.length; i++) {
+            var e = rows[i];
+            var obj = {
+                shortName: $($($(e).find('td')[1]).find('a')).html(),
+                name: $($(e).find('td')[2]).html()
+            };
+            data.push(obj);
+        }
+    }
+}
+
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("SpbStockList").asCtor(SpbStockList);
+
+function SpbStockList() {
+    this.getStocks = getStocks;
+    this.getByName = getByName;
+    this.getByShortName = getByShortName;
+    this.stockExistsByName = stockExistsByName;
+
+    var _stocks = [];
+
+    function getStocks() {
+        return _stocks;
+    }
+
+    function stockExistsByName(name) {
+        return !!this.getByShortName(name);
+    }
+
+    function getByShortName(name) {
+        return _stocks.find(function (s) {
+            return s.shortName == name;
+        });
+    }
+
+    function getByName(name) {
+        return _stocks.find(function (s) {
+            return s.name == name;
+        });
+    }
+
+    function ctor() {
+        addStock("A", "Agilent Technologies, Inc.");
+        addStock("AA", "Alcoa Corporation");
+        addStock("AABA", "Altaba Inc.");
+        addStock("AAL", "American Airlines Group Inc.");
+        addStock("AAP", "Advance Auto Parts, Inc.");
+        addStock("AAPL", "Apple Inc.");
+        addStock("ABBN", "Акционерное общество Банк Астаны");
+        addStock("ABBV", "AbbVie Inc.");
+        addStock("ABT", "Abbott Laboratories");
+        addStock("ACH", "The Bank of New York Mellon");
+        addStock("ACN", "Accenture plc");
+        addStock("ADBE", "Adobe Systems Incorporated");
+        addStock("ADI", "Analog Devices, Inc.");
+        addStock("ADM", "Archer-Daniels-Midland Company");
+        addStock("ADP", "Automatic Data Processing, Inc.");
+        addStock("ADS", "Alliance Data Systems Corporation");
+        addStock("ADSK", "Autodesk, Inc.");
+        addStock("AEE", "Ameren Corporation");
+        addStock("AES", "The AES Corporation");
+        addStock("AET", "Aetna Inc.");
+        addStock("AFL", "Aflac Incorporated");
+        addStock("AGN", "Allergan plc");
+        addStock("AIG", "American International Group, Inc.");
+        addStock("AIV", "Apartment Investment &amp; Management Company");
+        addStock("AIZ", "Assurant, Inc.");
+        addStock("AJG", "Arthur J. Gallagher &amp; Co.");
+        addStock("AKAM", "Akamai Technologies, Inc.");
+        addStock("AKZM", "“Aktobe Metalware Plant” JSC");
+        addStock("ALB", "Albemarle Corporation");
+        addStock("ALGN", "Align Technology, Inc.");
+        addStock("ALK", "Alaska Air Group, Inc.");
+        addStock("ALL", "The Allstate Corporation");
+        addStock("ALLE", "Allegion Public Limited Company");
+        addStock("ALXN", "Alexion Pharmaceuticals, Inc.");
+        addStock("AMAT", "Applied Materials, Inc.");
+        addStock("AMD", "Advanced Micro Devices, Inc.");
+        addStock("AME", "AMETEK, Inc.");
+        addStock("AMG", "Affiliated Managers Group, Inc.");
+        addStock("AMGN", "Amgen Inc.");
+        addStock("AMP", "Ameriprise Financial, Inc.");
+        addStock("AMT", "American Tower Corporation");
+        addStock("AMZN", "Amazon.com, Inc.");
+        addStock("AN", "AutoNation, Inc.");
+        addStock("ANDV", "Andeavor");
+        addStock("ANSS", "ANSYS, Inc.");
+        addStock("ANTM", "Anthem, Inc.");
+        addStock("AON", "Aon plc");
+        addStock("APA", "Apache Corporation");
+        addStock("APC", "Anadarko Petroleum Corporation");
+        addStock("APD", "Air Products &amp; Chemicals, Inc.");
+        addStock("APH", "Amphenol Corporation");
+        addStock("ARE", "Alexandria Real Estate Equities, Inc.");
+        addStock("ARNC", "Arconic Inc.");
+        addStock("ATVI", "Activision Blizzard, Inc.");
+        addStock("AVB", "AvalonBay Communities, Inc.");
+        addStock("AVGO", "Broadcom Limited");
+        addStock("AVP", "Avon Products, Inc.");
+        addStock("AVY", "Avery Dennison Corporation");
+        addStock("AXP", "American Express Company");
+        addStock("AYI", "Acuity Brands, Inc.");
+        addStock("AZO", "AutoZone, Inc.");
+        addStock("BA", "THE BOEING COMPANY");
+        addStock("BABA", "Citibank, N.A.");
+        addStock("BAC", "Bank of America Corporation");
+        addStock("BAST", "JSC “BAST”");
+        addStock("BAX", "Baxter International Inc.");
+        addStock("BBBY", "Bed Bath &amp; Beyond Inc.");
+        addStock("BBT", "BB&amp;T Corporation");
+        addStock("BBY", "Best Buy Co., Inc.");
+        addStock("BCR", "C.R. Bard, Inc.");
+        addStock("BDX", "Becton, Dickinson and Company");
+        addStock("BEN", "Franklin Resources, Inc.");
+        addStock("BF.B", "Brown-Forman Corporation");
+        addStock("BHF", "Brighthouse Financial, Inc.");
+        addStock("BHGE", "Baker Hughes, a GE company");
+        addStock("BIDU", "The Bank of New York Mellon");
+        addStock("BIIB", "Biogen Inc.");
+        addStock("BK", "The Bank of New York Mellon Corporation");
+        addStock("BLK", "BlackRock, Inc.");
+        addStock("BLL", "Ball Corporation");
+        addStock("BMY", "Bristol-Myers Squibb Company");
+        addStock("BRK.B", "Berkshire Hathaway Inc.");
+        addStock("BSX", "Boston Scientific Corporation");
+        addStock("BTI", "Citibank, N.A.");
+        addStock("BWA", "BorgWarner Inc.");
+        addStock("BXP", "Boston Properties, Inc.");
+        addStock("C", "Citigroup Inc.");
+        addStock("CA", "CA, Inc.");
+        addStock("CAG", "Conagra Brands, Inc.");
+        addStock("CAH", "Cardinal Health, Inc.");
+        addStock("CAT", "Caterpillar Inc.");
+        addStock("CB", "Chubb Limited");
+        addStock("CBG", "CBRE Group, Inc.");
+        addStock("CBOE", "Cboe Global Markets, Inc.");
+        addStock("CBPO", "China Biologic Products Holdings, Inc.");
+        addStock("CBS", "CBS Corporation");
+        addStock("CCI", "Crown Castle International Corp.");
+        addStock("CCL", "Carnival Corporation");
+        addStock("CELG", "Celgene Corporation");
+        addStock("CERN", "Cerner Corporation");
+        addStock("CF", "CF Industries Holdings, Inc.");
+        addStock("CFG", "Citizens Financial Group, Inc.");
+        addStock("CHD", "Church &amp; Dwight Co., Inc.");
+        addStock("CHK", "Chesapeake Energy Corporation");
+        addStock("CHL", "The Bank of New York Mellon");
+        addStock("CHRW", "C.H. Robinson Worldwide, Inc.");
+        addStock("CHTR", "Charter Communications, Inc.");
+        addStock("CI", "Cigna Corporation");
+        addStock("CINF", "Cincinnati Financial Corporation");
+        addStock("CL", "Colgate-Palmolive Company");
+        addStock("CLF", "Cleveland-Cliffs Inc.");
+        addStock("CLX", "The Clorox Company");
+        addStock("CMA", "Comerica Incorporated");
+        addStock("CMCSA", "Comcast Corporation");
+        addStock("CME", "CME Group Inc.");
+        addStock("CMG", "Chipotle Mexican Grill, Inc.");
+        addStock("CMI", "Cummins Inc.");
+        addStock("CMS", "CMS Energy Corporation");
+        addStock("CNC", "Centene Corporation");
+        addStock("CNP", "CenterPoint Energy, Inc.");
+        addStock("COF", "Capital One Financial Corporation");
+        addStock("COG", "Cabot Oil &amp; Gas Corporation");
+        addStock("COL", "Rockwell Collins, Inc.");
+        addStock("COO", "The Cooper Companies, Inc.");
+        addStock("COP", "ConocoPhillips");
+        addStock("COST", "Costco Wholesale Corporation");
+        addStock("CPB", "Campbell Soup Company");
+        addStock("CRM", "salesforce.com, inc.");
+        addStock("CSCO", "Cisco Systems, Inc.");
+        addStock("CSRA", "CSRA Inc.");
+        addStock("CTAS", "Cintas Corporation");
+        addStock("CTL", "CenturyLink, Inc.");
+        addStock("CTSH", "Cognizant Technology Solutions Corporation");
+        addStock("CTXS", "Citrix Systems, Inc.");
+        addStock("CVS", "CVS Health Corporation");
+        addStock("CVX", "Chevron Corporation");
+        addStock("CXO", "Concho Resources Inc.");
+        addStock("DAL", "Delta Air Lines Inc");
+        addStock("DE", "Deere &amp; Company");
+        addStock("DFS", "Discover Financial Services");
+        addStock("DG", "Dollar General Corporation");
+        addStock("DGX", "Quest Diagnostics Incorporated");
+        addStock("DHI", "D.R. Horton, Inc.");
+        addStock("DHR", "Danaher Corporation");
+        addStock("DIS", "The Walt Disney Company");
+        addStock("DISCA", "Discovery Communications, Inc.");
+        addStock("DISCK", "Discovery Communications, Inc.");
+        addStock("DLPH", "Delphi Automotive PLC");
+        addStock("DLR", "Digital Realty Trust, Inc.");
+        addStock("DLTR", "Dollar Tree, Inc.");
+        addStock("DNB", "The Dun &amp; Bradstreet Corporation");
+        addStock("DOV", "Dover Corporation");
+        addStock("DPS", "Dr Pepper Snapple Group, Inc.");
+        addStock("DRI", "Darden Restaurants, Inc.");
+        addStock("DVA", "DaVita Inc.");
+        addStock("DVN", "Devon Energy Corporation");
+        addStock("DWDP", "DowDuPont Inc.");
+        addStock("DXC", "DXC Technology Company");
+        addStock("EA", "Electronic Arts Inc.");
+        addStock("EBAY", "eBay Inc.");
+        addStock("ECL", "Ecolab Inc.");
+        addStock("ED", "Consolidated Edison, Inc.");
+        addStock("EFX", "Equifax Inc.");
+        addStock("EIX", "Edison International");
+        addStock("EL", "The Estee Lauder Companies Inc.");
+        addStock("EMN", "Eastman Chemical Company");
+        addStock("EMR", "Emerson Electric Co.");
+        addStock("ENDP", "Endo International PLC");
+        addStock("EOG", "EOG Resources, Inc.");
+        addStock("EQIX", "Equinix, Inc.");
+        addStock("EQT", "EQT Corporation");
+        addStock("ES", "Eversource Energy");
+        addStock("ESS", "Essex Property Trust, Inc.");
+        addStock("ETFC", "E*TRADE Financial Corporation");
+        addStock("ETN", "Eaton Corporation plc");
+        addStock("EVHC", "Envision Healthcare Corporation");
+        addStock("EW", "Edwards Lifesciences Corporation");
+        addStock("EXC", "Exelon Corporation");
+        addStock("EXPD", "Expeditors International of Washington, Inc.");
+        addStock("EXPE", "Expedia, Inc.");
+        addStock("EXR", "Extra Space Storage Inc.");
+        addStock("F", "Ford Motor Company");
+        addStock("FAST", "Fastenal Company");
+        addStock("FB", "Facebook, Inc.");
+        addStock("FBHS", "Fortune Brands Home &amp; Security, Inc.");
+        addStock("FCX", "Freeport-McMoRan Inc.");
+        addStock("FDX", "FedEx Corporation");
+        addStock("FFIV", "F5 Networks, Inc.");
+        addStock("FIS", "Fidelity National Information Services, Inc.");
+        addStock("FISV", "Fiserv, Inc.");
+        addStock("FITB", "Fifth Third Bancorp");
+        addStock("FLIR", "FLIR Systems, Inc.");
+        addStock("FLR", "Fluor Corporation");
+        addStock("FLS", "Flowserve Corporation");
+        addStock("FMC", "FMC Corporation");
+        addStock("FOX", "Twenty-First Century Fox, Inc.");
+        addStock("FOXA", "Twenty-First Century Fox, Inc.");
+        addStock("FSLR", "First Solar, Inc.");
+        addStock("FTI", "TechnipFMC plc");
+        addStock("FTR", "Frontier Communications Corporation");
+        addStock("FTV", "Fortive Corporation");
+        addStock("GD", "General Dynamics Corporation");
+        addStock("GE", "General Electric Company");
+        addStock("GGP", "GGP Inc.");
+        addStock("GILD", "GILEAD SCIENCES, INC.");
+        addStock("GIS", "General Mills, Inc.");
+        addStock("GLW", "Corning Incorporated");
+        addStock("GM", "General Motors Company");
+        addStock("GOOG", "Alphabet Inc.");
+        addStock("GOOGL", "Alphabet Inc.");
+        addStock("GPC", "Genuine Parts Company");
+        addStock("GPN", "Global Payments Inc.");
+        addStock("GPS", "The Gap, Inc.");
+        addStock("GRMN", "Garmin Ltd.");
+        addStock("GS", "The Goldman Sachs Group, Inc.");
+        addStock("GT", "The Goodyear Tire &amp; Rubber Company");
+        addStock("GWW", "WW Grainger, Inc.");
+        addStock("HAL", "Halliburton Company");
+        addStock("HAS", "Hasbro, Inc.");
+        addStock("HBAN", "Huntington Bancshares Incorporated");
+        addStock("HBI", "Hanesbrands Inc.");
+        addStock("HCA", "HCA Healthcare, Inc.");
+        addStock("HCN", "Welltower Inc.");
+        addStock("HCP", "HCP, Inc.");
+        addStock("HD", "The Home Depot, Inc.");
+        addStock("HES", "Hess Corporation");
+        addStock("HIG", "The Hartford Financial Services Group, Inc.");
+        addStock("HLT", "Hilton Worldwide Holdings Inc.");
+        addStock("HOG", "Harley-Davidson, Inc.");
+        addStock("HOLX", "Hologic, Inc.");
+        addStock("HON", "Honeywell International Inc.");
+        addStock("HP", "Helmerich &amp; Payne, Inc.");
+        addStock("HPE", "Hewlett Packard Enterprise Company");
+        addStock("HPQ", "HP Inc.");
+        addStock("HRB", "H&amp;R Block, Inc.");
+        addStock("HRL", "Hormel Foods Corporation");
+        addStock("HRS", "Harris Corporation");
+        addStock("HSIC", "Henry Schein, Inc.");
+        addStock("HST", "Host Hotels &amp; Resorts, Inc.");
+        addStock("HSY", "The Hershey Company");
+        addStock("HUM", "Humana Inc.");
+        addStock("IBM", "International Business Machines Corporation");
+        addStock("IBN", "Deutsche Bank Trust Company Americas");
+        addStock("ICE", "Intercontinental Exchange, Inc.");
+        addStock("IDXX", "IDEXX Laboratories, Inc.");
+        addStock("IFF", "International Flavors &amp; Fragrances Inc.");
+        addStock("ILMN", "Illumina, Inc.");
+        addStock("INCY", "Incyte Corporation");
+        addStock("INFO", "IHS Markit Ltd.");
+        addStock("INTC", "Intel Corporation");
+        addStock("INTU", "Intuit Inc.");
+        addStock("IP", "International Paper Company");
+        addStock("IPG", "The Interpublic Group of Companies, Inc.");
+        addStock("IR", "Ingersoll-Rand public limited company");
+        addStock("IRM", "Iron Mountain Incorporated");
+        addStock("ISRG", "Intuitive Surgical, Inc.");
+        addStock("IT", "Gartner, Inc.");
+        addStock("ITW", "Illinois Tool Works Inc.");
+        addStock("IVZ", "Invesco Ltd.");
+        addStock("JBHT", "JB Hunt Transport Services, Inc.");
+        addStock("JCI", "Johnson Controls International plc");
+        addStock("JD", "Deutsche Bank Trust Company Americas");
+        addStock("JEC", "Jacobs Engineering Group Inc.");
+        addStock("JNJ", "Johnson &amp; Johnson");
+        addStock("JNPR", "Juniper Networks, Inc.");
+        addStock("JPM", "JPMorgan Chase &amp; Co.");
+        addStock("JWN", "Nordstrom, Inc.");
+        addStock("K", "Kellogg Company");
+        addStock("KEP", "Citibank, N.A.");
+        addStock("KEY", "KeyCorp");
+        addStock("KHC", "The Kraft Heinz Company");
+        addStock("KIM", "Kimco Realty Corporation");
+        addStock("KLAC", "KLA-Tencor Corporation");
+        addStock("KMB", "Kimberly-Clark Corporation");
+        addStock("KMI", "Kinder Morgan, Inc.");
+        addStock("KMX", "CarMax, Inc.");
+        addStock("KO", "THE COCA-COLA COMPANY");
+        addStock("KORS", "Michael Kors Holdings Limited");
+        addStock("KR", "The Kroger Co.");
+        addStock("KSU", "Kansas City Southern");
+        addStock("L", "Loews Corporation");
+        addStock("LB", "L Brands, Inc.");
+        addStock("LEG", "Leggett &amp; Platt, Incorporated");
+        addStock("LEN", "Lennar Corporation");
+        addStock("LH", "Laboratory Corporation of America Holdings");
+        addStock("LKQ", "LKQ Corporation");
+        addStock("LLL", "L3 Technologies, Inc.");
+        addStock("LLY", "Eli Lilly and Company");
+        addStock("LM", "Legg Mason, Inc.");
+        addStock("LMT", "Lockheed Martin Corporation");
+        addStock("LNT", "Alliant Energy Corporation");
+        addStock("LOW", "Lowe's Companies, Inc.");
+        addStock("LPL", "Citibank, N.A.");
+        addStock("LRCX", "Lam Research Corporation");
+        addStock("LUK", "Leucadia National Corporation");
+        addStock("LUV", "Southwest Airlines Co.");
+        addStock("LVLT", "Level 3 Communications, Inc.");
+        addStock("LYB", "LyondellBasell Industries N.V.");
+        addStock("M", "Macy's, Inc.");
+        addStock("MA", "Mastercard Incorporated");
+        addStock("MAA", "Mid-America Apartment Communities, Inc.");
+        addStock("MAC", "The Macerich Company");
+        addStock("MAR", "Marriott International, Inc.");
+        addStock("MAS", "Masco Corporation");
+        addStock("MAT", "Mattel, Inc.");
+        addStock("MBT", "JPMorgan Chase Bank, N.A.");
+        addStock("MCD", "Mc'DONALDS CORPORATION");
+        addStock("MCHP", "Microchip Technology Incorporated");
+        addStock("MCK", "McKesson Corporation");
+        addStock("MCO", "Moody's Corporation");
+        addStock("MDLZ", "Mondelez International, Inc.");
+        addStock("MDT", "Medtronic Public Limited Company");
+        addStock("MET", "MetLife, Inc.");
+        addStock("MFGP", "Deutsche Bank Trust Company Americas");
+        addStock("MHK", "Mohawk Industries, Inc.");
+        addStock("MKC", "McCormick &amp; Company, Incorporated");
+        addStock("MLCO", "Deutsche Bank Trust Company Americas");
+        addStock("MLM", "Martin Marietta Materials, Inc.");
+        addStock("MMC", "Marsh &amp; McLennan Companies, Inc.");
+        addStock("MMM", "3M Company");
+        addStock("MNK", "Mallinckrodt public limited company");
+        addStock("MNST", "Monster Beverage Corporation");
+        addStock("MO", "Altria Group, Inc.");
+        addStock("MOMO", "Deutsche Bank Trust Company Americas");
+        addStock("MON", "Monsanto Company");
+        addStock("MOS", "The Mosaic Company");
+        addStock("MPC", "Marathon Petroleum Corporation");
+        addStock("MRK", "Merck &amp; Co., Inc.");
+        addStock("MRO", "Marathon Oil Corporation");
+        addStock("MS", "Morgan Stanley");
+        addStock("MSFT", "Microsoft Corporation");
+        addStock("MSI", "Motorola Solutions, Inc.");
+        addStock("MTB", "M&amp;T Bank Corporation");
+        addStock("MTD", "Mettler-Toledo International Inc.");
+        addStock("undefined", "MTS International Funding Limited");
+        addStock("MU", "Micron Technology, Inc.");
+        addStock("MUR", "Murphy Oil Corporation");
+        addStock("MYL", "Mylan N.V.");
+        addStock("NAVI", "Navient Corporation");
+        addStock("NBL", "Noble Energy, Inc.");
+        addStock("NDAQ", "Nasdaq, Inc.");
+        addStock("NEE", "NextEra Energy, Inc.");
+        addStock("NEM", "NEWMONT MINING CORPORATION");
+        addStock("NFLX", "Netflix, Inc.");
+        addStock("NFX", "Newfield Exploration Company");
+        addStock("NKE", "NIKE, Inc.");
+        addStock("NLSN", "Nielsen Holdings plc");
+        addStock("NOC", "Northrop Grumman Corporation");
+        addStock("NOK", "Citibank, N.A.");
+        addStock("NOV", "National Oilwell Varco, Inc.");
+        addStock("NRG", "NRG Energy, Inc.");
+        addStock("NSC", "Norfolk Southern Corporation");
+        addStock("NTAP", "NetApp, Inc.");
+        addStock("NTRS", "Northern Trust Corporation");
+        addStock("NUE", "Nucor Corporation");
+        addStock("NVDA", "NVIDIA Corporation");
+        addStock("undefined", "Novatek Finance Designated Activity Company");
+        addStock("NWL", "Newell Brands Inc.");
+        addStock("NWS", "News Corporation");
+        addStock("NWSA", "News Corporation");
+        addStock("O", "Realty Income Corporation");
+        addStock("OI", "Owens-Illinois, Inc.");
+        addStock("OKE", "ONEOK, Inc.");
+        addStock("OMC", "Omnicom Group Inc.");
+        addStock("ORCL", "Oracle Corporation");
+        addStock("ORLY", "O'Reilly Automotive, Inc.");
+        addStock("OXY", "Occidental Petroleum Corporation");
+        addStock("PBCT", "People's United Financial, Inc.");
+        addStock("PBI", "Pitney Bowes Inc.");
+        addStock("PCAR", "PACCAR Inc");
+        addStock("PCG", "PG&amp;E Corporation");
+        addStock("PCLN", "The Priceline Group Inc.");
+        addStock("PDCO", "Patterson Companies, Inc.");
+        addStock("PEG", "Public Service Enterprise Group Incorporated");
+        addStock("PEP", "PepsiCo, Inc.");
+        addStock("PFE", "Pfizer Inc.");
+        addStock("PFG", "Principal Financial Group, Inc.");
+        addStock("PG", "The Procter &amp; Gamble Company");
+        addStock("PGR", "The Progressive Corporation");
+        addStock("PH", "Parker-Hannifin Corporation");
+        addStock("PHM", "PulteGroup, Inc.");
+        addStock("PKI", "PerkinElmer, Inc.");
+        addStock("PLD", "Prologis, Inc.");
+        addStock("PM", "Philip Morris International Inc.");
+        addStock("PNC", "The PNC Financial Services Group, Inc.");
+        addStock("PPG", "PPG Industries, Inc.");
+        addStock("PPL", "PPL Corporation");
+        addStock("PRU", "Prudential Financial, Inc.");
+        addStock("PSA", "Public Storage");
+        addStock("PSX", "Phillips 66");
+        addStock("PTR", "Citibank, N.A.");
+        addStock("PVH", "PVH Corp.");
+        addStock("PWR", "Quanta Services, Inc.");
+        addStock("PX", "Praxair, Inc.");
+        addStock("PXD", "Pioneer Natural Resources Company");
+        addStock("PYPL", "PayPal Holdings, Inc.");
+        addStock("QCOM", "QUALCOMM Incorporated");
+        addStock("QRVO", "Qorvo, Inc.");
+        addStock("R", "Ryder System, Inc.");
+        addStock("RACE", "Ferrari N.V.");
+        addStock("RCL", "Royal Caribbean Cruises Ltd.");
+        addStock("RDY", "JPMorgan Chase Bank, N.A.");
+        addStock("RE", "Everest Re Group, Ltd.");
+        addStock("REG", "Regency Centers Corporation");
+        addStock("REGN", "Regeneron Pharmaceuticals, Inc.");
+        addStock("RF", "Regions Financial Corporation");
+        addStock("RHI", "Robert Half International Inc.");
+        addStock("RHT", "Red Hat, Inc.");
+        addStock("RIG", "Transocean Ltd.");
+        addStock("RJF", "Raymond James Financial, Inc.");
+        addStock("RL", "Ralph Lauren Corporation");
+        addStock("ROK", "Rockwell Automation, Inc.");
+        addStock("ROP", "Roper Technologies, Inc.");
+        addStock("ROST", "Ross Stores, Inc.");
+        addStock("RRC", "Range Resources Corporation");
+        addStock("RSG", "Republic Services, Inc.");
+        addStock("RTN", "Raytheon Company");
+        addStock("SBUX", "Starbucks Corporation");
+        addStock("SCG", "SCANA Corporation");
+        addStock("SCHW", "The Charles Schwab Corporation");
+        addStock("SEE", "Sealed Air Corporation");
+        addStock("SHW", "The Sherwin-Williams Company");
+        addStock("SIG", "Signet Jewelers Limited");
+        addStock("SJM", "The J.M. Smucker Company");
+        addStock("SKM", "Citibank, N.A.");
+        addStock("SLB", "Schlumberger Limited");
+        addStock("SLG", "SL Green Realty Corp.");
+        addStock("SNA", "Snap-on Incorporated");
+        addStock("SNI", "Scripps Networks Interactive, Inc.");
+        addStock("SNPS", "Synopsys, Inc.");
+        addStock("SO", "The Southern Company");
+        addStock("SOHU", "Sohu.com Inc.");
+        addStock("SPG", "Simon Property Group, Inc.");
+        addStock("SPGI", "S&amp;P Global Inc.");
+        addStock("SRCL", "Stericycle, Inc.");
+        addStock("SRE", "Sempra Energy");
+        addStock("STT", "State Street Corporation");
+        addStock("STX", "Seagate Technology Public Limited Company");
+        addStock("STZ", "Constellation Brands, Inc.");
+        addStock("SWK", "Stanley Black &amp; Decker, Inc.");
+        addStock("SWKS", "Skyworks Solutions, Inc.");
+        addStock("SWN", "Southwestern Energy Company");
+        addStock("SYF", "Synchrony Financial");
+        addStock("SYK", "Stryker Corporation");
+        addStock("SYMC", "Symantec Corporation");
+        addStock("SYY", "Sysco Corporation");
+        addStock("T", "AT&amp;T INC.");
+        addStock("TAP", "Molson Coors Brewing Company");
+        addStock("TDC", "Teradata Corporation");
+        addStock("TDG", "TransDigm Group Incorporated");
+        addStock("TEL", "TE Connectivity Ltd.");
+        addStock("TGNA", "TEGNA Inc.");
+        addStock("TGT", "Target Corporation");
+        addStock("TIF", "Tiffany &amp; Co.");
+        addStock("TJX", "The TJX Companies, Inc.");
+        addStock("TMK", "Torchmark Corporation");
+        addStock("TMO", "Thermo Fisher Scientific Inc.");
+        addStock("TPR", "Tapestry, Inc.");
+        addStock("TRIP", "TripAdvisor, Inc.");
+        addStock("TROW", "T. Rowe Price Group, Inc.");
+        addStock("TRV", "The Travelers Companies, Inc.");
+        addStock("TSCO", "Tractor Supply Company");
+        addStock("TSLA", "Tesla, Inc.");
+        addStock("TSN", "Tyson Foods, Inc.");
+        addStock("TSS", "Total System Services, Inc.");
+        addStock("TTM", "Citibank, N.A.");
+        addStock("TWTR", "Twitter, Inc.&nbsp;");
+        addStock("TWX", "Time Warner Inc.");
+        addStock("TXN", "Texas Instruments Incorporated");
+        addStock("TXT", "Textron Inc.");
+        addStock("UA", "Under Armour, Inc.");
+        addStock("UAA", "Under Armour, Inc.");
+        addStock("UAL", "United Continental Holdings, Inc.");
+        addStock("UDR", "UDR, Inc.");
+        addStock("UHS", "Universal Health Services, Inc.");
+        addStock("ULTA", "Ulta Beauty, Inc.");
+        addStock("UNH", "UnitedHealth Group Incorporated");
+        addStock("UNM", "Unum Group");
+        addStock("UNP", "Union Pacific Corporation");
+        addStock("UPS", "United Parcel Service, Inc.");
+        addStock("URBN", "Urban Outfitters, Inc.");
+        addStock("URI", "United Rentals, Inc.");
+        addStock("USB", "U.S. Bancorp");
+        addStock("UTX", "United Technologies Corporation");
+        addStock("V", "Visa Inc.");
+        addStock("VAR", "Varian Medical Systems, Inc.");
+        addStock("VEON", "The Bank of New York Mellon");
+        addStock("VFC", "V.F. Corporation");
+        addStock("VIAB", "Viacom Inc.");
+        addStock("VIPS", "Deutsche Bank Trust Company Americas");
+        addStock("VLO", "Valero Energy Corporation");
+        addStock("VMC", "Vulcan Materials Company");
+        addStock("VNO", "Vornado Realty Trust");
+        addStock("VRSK", "Verisk Analytics, Inc.");
+        addStock("VRSN", "VeriSign, Inc.");
+        addStock("VRTX", "Vertex Pharmaceuticals Incorporated");
+        addStock("undefined", "VTB Capital S.A.");
+        addStock("VTR", "Ventas, Inc.");
+        addStock("VZ", "Verizon Communications Inc.");
+        addStock("WAT", "Waters Corporation");
+        addStock("WB", "JPMorgan Chase Bank, N.A.");
+        addStock("WBA", "Walgreens Boots Alliance, Inc.");
+        addStock("WDC", "Western Digital Corporation");
+        addStock("WEC", "WEC Energy Group, Inc.");
+        addStock("WFC", "Wells Fargo &amp; Company");
+        addStock("WHR", "Whirlpool Corporation");
+        addStock("WLTW", "Willis Towers Watson Public Limited Company");
+        addStock("WM", "Waste Management, Inc.");
+        addStock("WMB", "The Williams Companies, Inc.");
+        addStock("WMT", "Wal-Mart Stores, Inc.");
+        addStock("WRK", "WestRock Company");
+        addStock("WU", "The Western Union Company");
+        addStock("WY", "Weyerhaeuser Company");
+        addStock("WYN", "Wyndham Worldwide Corporation");
+        addStock("WYNN", "Wynn Resorts, Limited");
+        addStock("XEC", "Cimarex Energy Co.");
+        addStock("XEL", "Xcel Energy Inc.");
+        addStock("XL", "XL Group Ltd.");
+        addStock("XLNX", "Xilinx, Inc.");
+        addStock("XOM", "Exxon Mobil Corporation");
+        addStock("XRAY", "DENTSPLY SIRONA Inc.");
+        addStock("XRX", "Xerox Corporation");
+        addStock("XYL", "Xylem Inc.");
+        addStock("YUM", "Yum! Brands, Inc.");
+        addStock("YY", "Deutsche Bank Trust Company Americas");
+        addStock("ZBH", "Zimmer Biomet Holdings, Inc.");
+        addStock("ZION", "Zions Bancorporation");
+        addStock("ZTS", "Zoetis Inc.");
+    }
+
+    function addStock(shortName, name) {
+        _stocks.push({ name: name, shortName: shortName });
+    }
+    ctor();
 }
 
 /***/ })

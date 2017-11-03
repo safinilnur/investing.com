@@ -9,7 +9,6 @@ function FinamStockRecommendationTypes() {
     this.convertRecommendationToString = convertRecommendationToString;
 
     function getMinimalEstimation(types){
-        debugger;
         if (!types || !types.length){
             return -2;
         }

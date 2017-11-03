@@ -15,7 +15,6 @@ function CssStockRecommendations() {
         return `
         .stock-recommedations tr {       font-size: 16px;   font-family: cursive;        }
         .stock-recommedations td,.stock-recommedations th {
-                min-width: 300px;
                 padding:5px 0 0 15px}
 
             .stock-recommedations table {position: relative;text-align: left;margin: auto;}

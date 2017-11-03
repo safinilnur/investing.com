@@ -39,11 +39,17 @@ function FinamFavouriteStocks(){
         add("activision", "activision-inc", true);
         add("salesforce", "salesforce-com", true);
         add("amazon", "amazon-com-inc", true);
+
+        add("jp-morgan", "jp-morgan-chase", true);
+        add("momo", "momo-inc", true);
+        add("transocea", "transocea-ltd", true);
+        add("celgene", "celgene-corp", true);
     }
 
     function add(name, url, isInFinam) {
         if (isInFinam){
-            _stocks.push({name, url: urlBase + url, id: url});
+            var id= url.replace(/[.,]/g, "");
+            _stocks.push({name, url: urlBase + url, id: id});
         }
     }
 
