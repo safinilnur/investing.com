@@ -92,9 +92,12 @@ function registerInfrastructure() {
     __webpack_require__(15);
     __webpack_require__(16);
     __webpack_require__(17);
+    __webpack_require__(18);
+    __webpack_require__(19);
 
-    _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
-    _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
+    //_investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
+    //_investStocks.ctx.get('InvestingAvailablefunctions').getAll();
+    _investStocks.ctx.get('InvestingStockListRetreiver').runGetAllUsaStocksTask();
 }
 
 registerInfrastructure();
@@ -1201,11 +1204,19 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         var itemsHtml = items.map(function (i) {
             return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>" + i.historicalData.percentTenDaysFall + "</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "</tr>";
         });
-        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "</tr>" + itemsHtml + "<tr><td colspan='7'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='7'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "</table></div>";
+        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "</tr>" + itemsHtml + "<tr><td colspan='7'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='7'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "<tr><td colspan='7'>" + "<button id='close-favourite-stocks-report'>Очистить</button>" + "</td></tr>" + "</table></div>";
         $('body').html(resultHtml);
 
         CssStockRecommendations.appendStyle();
         initializeCheckBoxes(items);
+        initializeButtonsEvents();
+    }
+
+    function initializeButtonsEvents() {
+        $('#close-favourite-stocks-report').unbind('click');
+        $('#close-favourite-stocks-report').bind('click', function () {
+            clearPreviousData();
+        });
     }
 
     function initializeCheckBoxes(items) {
@@ -1231,8 +1242,8 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         // todo move to extra module
         if (a.technicalSummary < b.technicalSummary) // sort by technicalSummary
             return 1;else if (a.technicalSummary > b.technicalSummary) return -1;else {
-            if (a.yearRate < b.yearRate) // then by yearRate
-                return 1;else if (a.yearRate > b.yearRate) return -1;else return 0;
+            if (a.percentTenDaysFall < b.percentTenDaysFall) // then by yearRate
+                return 1;else if (a.percentTenDaysFall > b.percentTenDaysFall) return -1;else return 0;
         }
     }
 
@@ -1439,7 +1450,7 @@ function InvestingAvailablefunctions() {
     this.getAll = getAll;
 
     function getAll() {
-        console.log("\n1) Sort your favourite list of stocks by technical recommendations. Run:\n_investStocks.ctx.get('FavouriteStocksAnalyzer').run();\n\n2) Get filtered USA stocks (filter by day, mont, year gain). \nGo to page Page: https://ru.investing.com/equities/united-states and run:\n_investStocks.ctx.get('LoadYearStatistics').load();  \n\n3) Get all stocks from spb exchange \nGo to page Page: http://www.spbexchange.ru/ru/stocks/inostrannye/Instruments.aspx and run:\n_investStocks.ctx.get('GetSpbStockList').GetSpbStockList();  \n        ");
+        console.log("\n1) Sort your favourite list of stocks by technical recommendations. Run:\n_investStocks.ctx.get('FavouriteStocksAnalyzer').run();\n\n2) Get filtered USA stocks (filter by day, mont, year gain). \nGo to page Page: https://ru.investing.com/equities/united-states and run:\n_investStocks.ctx.get('LoadYearStatistics').load();  \n\n3) Get all stocks from spb exchange \nGo to page Page: http://www.spbexchange.ru/ru/stocks/inostrannye/Instruments.aspx and run:\n_investStocks.ctx.get('GetSpbStockList').getAllStocks(); \n\n4) get all usa stock list\nGo to page https://ru.investing.com/equities/united-states and run \n_investStocks.ctx.get('InvestingStockListRetreiver').getAllUsaStocks(); \n        ");
     }
 }
 
@@ -2100,6 +2111,124 @@ function SpbStockList() {
         _stocks.push({ name: name, shortName: shortName });
     }
     ctor();
+}
+
+/***/ }),
+/* 18 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("InvestingStockListRetreiver").asCtor(InvestingStockListRetreiver).dependencies("LocalStorageHelper");
+
+function InvestingStockListRetreiver(LocalStorageHelper) {
+    this.getAllUsaStocks = getAllUsaStocks;
+    this.runGetAllUsaStocksTask = runGetAllUsaStocksTask;
+
+    function getAllUsaStocks() {
+        debugger;
+
+        if (location.href != "https://ru.investing.com/equities/united-states") {
+            throw "use page https://ru.investing.com/equities/united-states to run this script";
+        }
+
+        var data = collectStockUrlsataFromPage();
+        LocalStorageHelper.set("StockBaseInfoToCollect", data);
+
+        runGetAllUsaStocksTask();
+    }
+
+    function runGetAllUsaStocksTask() {
+        debugger;
+        var stocks = LocalStorageHelper.get("StockBaseInfoToCollect");
+
+        var stockToCollect = stocks && stocks.find(function (e) {
+            return !e.dataCollected;
+        });
+
+        if (stockToCollect) {
+            if (location.href.includes(stockToCollect.url)) {
+                stockToCollect.shortName = getShortName();
+                stockToCollect.dataCollected = true;
+
+                LocalStorageHelper.set("StockBaseInfoToCollect", stocks);
+
+                runGetAllUsaStocksTask();
+            } else {
+                location.href = "https://ru.investing.com/equities/" + stockToCollect.url;
+            }
+        } else {
+            if (stocks && stocks.length) {
+                var jsCode = jsStocksCreator(stocks);
+                console.log(jsCode);
+
+                LocalStorageHelper.remove("StockBaseInfoToCollect");
+            }
+        }
+    }
+
+    function jsStocksCreator(stocks) {
+        var str = "";
+
+        stocks.forEach(function (s) {
+            s.name = s.name.replace('&amp;', '&').replace("'", "\'");
+
+            str += "add('" + s.name + "', '" + s.url + "', '" + s.shortName + "');\n";
+        });
+
+        return str;
+    }
+
+    function getShortName() {
+        return $('[itemprop="tickerSymbol"]').attr('content');
+    }
+
+    function collectStockUrlsataFromPage() {
+        var rows = $('#marketInnerContent table tbody tr');
+
+        var data = [];
+
+        for (var i = 0; i < rows.length; i++) {
+            data.push({
+                name: $($(rows[i]).find('td:eq(1) a')).html(),
+                url: $($(rows[i]).find('td:eq(1) a')).attr('href').replace('/equities/', '')
+            });
+        }
+
+        return data;
+    }
+}
+
+/***/ }),
+/* 19 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("LocalStorageHelper").asCtor(LocalStorageHelper);
+
+function LocalStorageHelper() {
+    this.get = get;
+    this.set = set;
+    this.remove = remove;
+
+    function set(key, value) {
+        var storageValue = value && JSON.stringify(value);
+
+        localStorage.setItem(key, storageValue);
+    }
+
+    function get(key) {
+        var data = localStorage.getItem(key);
+
+        return data && JSON.parse(data);
+    }
+
+    function remove(key) {
+        localStorage.removeItem(key);
+    }
 }
 
 /***/ })

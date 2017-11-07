@@ -15,7 +15,11 @@ _investStocks.ctx.get('LoadYearStatistics').load();
 
 3) Get all stocks from spb exchange 
 Go to page Page: http://www.spbexchange.ru/ru/stocks/inostrannye/Instruments.aspx and run:
-_investStocks.ctx.get('GetSpbStockList').getAllStocks();  
+_investStocks.ctx.get('GetSpbStockList').getAllStocks(); 
+
+4) get all usa stock list
+Go to page https://ru.investing.com/equities/united-states and run 
+_investStocks.ctx.get('InvestingStockListRetreiver').getAllUsaStocks(); 
         `);
     }
 

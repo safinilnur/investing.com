@@ -21,9 +21,12 @@ function registerInfrastructure(){
     require('./investing/services/InvestingAvailablefunctions');
     require('./spbexchange.ru/getStockList');
     require('./spbexchange.ru/SpbStockList');
+    require('./investing/services/InvestingStockListRetreiver');
+    require('./common/helpers/localStorageHelper');
 
-    _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
-    _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
+    //_investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
+    //_investStocks.ctx.get('InvestingAvailablefunctions').getAll();
+    _investStocks.ctx.get('InvestingStockListRetreiver').runGetAllUsaStocksTask();
 
 }
 

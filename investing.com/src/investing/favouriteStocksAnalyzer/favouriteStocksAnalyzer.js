@@ -136,11 +136,22 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
             "<tr><td colspan='7'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
             "<tr><td colspan='7'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
+            "<tr><td colspan='7'>" +
+                "<button id='close-favourite-stocks-report'>Очистить</button>" +
+            "</td></tr>"+
             "</table></div>";
         $('body').html(resultHtml);
 
         CssStockRecommendations.appendStyle();
         initializeCheckBoxes(items);
+        initializeButtonsEvents();
+    }
+
+    function initializeButtonsEvents(){
+        $('#close-favourite-stocks-report').unbind('click');
+        $('#close-favourite-stocks-report').bind('click', ()=>{
+            clearPreviousData();
+        })
     }
 
     function initializeCheckBoxes(items){
@@ -166,9 +177,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         else if (a.technicalSummary > b.technicalSummary)
             return -1;
         else{
-            if (a.yearRate < b.yearRate) // then by yearRate
+            if (a.percentTenDaysFall < b.percentTenDaysFall) // then by yearRate
                 return 1;
-            else if (a.yearRate > b.yearRate)
+            else if (a.percentTenDaysFall > b.percentTenDaysFall)
                 return -1;
             else
                 return 0;
