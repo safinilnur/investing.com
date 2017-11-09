@@ -12,7 +12,7 @@ function AllUsaStocks(){
     }
 
     function ctor(){
-        urlBase = "https://ru.investing.com/equities/";
+        urlBase = "https://ru.investing.com/equities/"; // todo remove to consts!!!
         _stocks = [];
 
         add('Boeing', 'boeing-co', 'BA');

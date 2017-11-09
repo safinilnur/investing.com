@@ -9,9 +9,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
     const storageKey = "favouriteStocksAnalitycs";
 
-    function run(){
+    function run(collectProfitableStock){
         clearPreviousData();
-        setInitialData();
+        setInitialData(collectProfitableStock);
         loadData();
     }
 
@@ -67,7 +67,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         for (var i=0; i<rows.length; i++){
             var row = rows[i];
             item.historicalData[i] = {
-                maxPrice: parseFloat($($(row).find('td')[3]).html().replace(',','.'))
+                maxPrice: parseFloat($($(row).find('td')[3]).html().replace('.','').replace(',','.'))
             };
         }
 
@@ -138,6 +138,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             "<tr><td colspan='7'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
             "<tr><td colspan='7'>" +
                 "<button id='close-favourite-stocks-report'>Очистить</button>" +
+            "<button id='do-initial-sort'>Исходная сортировка</button>" +
             "</td></tr>"+
             "</table></div>";
         $('body').html(resultHtml);
@@ -151,8 +152,17 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         $('#close-favourite-stocks-report').unbind('click');
         $('#close-favourite-stocks-report').bind('click', ()=>{
             clearPreviousData();
+        });
+
+
+        $('#do-initial-sort').unbind('click');
+        $('#do-initial-sort').bind('click', ()=>{
+            debugger;
+            setInitialDistribution();
         })
     }
+
+
 
     function initializeCheckBoxes(items){
         items.forEach(i=>{
@@ -177,9 +187,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         else if (a.technicalSummary > b.technicalSummary)
             return -1;
         else{
-            if (a.percentTenDaysFall < b.percentTenDaysFall) // then by yearRate
+            if (a.historicalData.percentTenDaysFall < b.historicalData.percentTenDaysFall) // then by yearRate
                 return 1;
-            else if (a.percentTenDaysFall > b.percentTenDaysFall)
+            else if (a.historicalData.percentTenDaysFall > b.historicalData.percentTenDaysFall)
                 return -1;
             else
                 return 0;
@@ -244,7 +254,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         if ($('#leftColumn > div.clear.overviewDataTable > div:nth-child(13) > span.float_lang_base_1').html() == "Изменение за год")
         {
             var rateWithPercent = $('#leftColumn > div.clear.overviewDataTable > div:nth-child(13) > span.float_lang_base_2.bold').html();
-            var rate =  parseFloat(rateWithPercent.slice(0, -1).replace(",","."));
+            var rate =  parseFloat(rateWithPercent.slice(0, -1).replace(/[ ]/g,'').replace(",","."));
 
             return rate;
         }
@@ -273,8 +283,8 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         return getStorageData().find(s=> !s[propName]);
     }
 
-    function setInitialData(){
-        var dataToCollect = FinamFavouriteStocks.getAll().map(s=> {
+    function setInitialData(collectProfitableStock){
+        var dataToCollect = FinamFavouriteStocks.getAll(collectProfitableStock).map(s=> {
             s.mainDataCollected = false;
             return s;
         });

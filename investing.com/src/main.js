@@ -23,9 +23,12 @@ function registerInfrastructure(){
     require('./spbexchange.ru/SpbStockList');
     require('./investing/services/InvestingStockListRetreiver');
     require('./common/helpers/localStorageHelper');
+    require('./investing/userData/allUsaStocks');
+    require('./investing/favouriteStocksAnalyzer/favouriteStockFiltering');
+    require('./investing/consts/InvestingConsts');
 
-    //_investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
-    //_investStocks.ctx.get('InvestingAvailablefunctions').getAll();
+    _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
+    _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
     _investStocks.ctx.get('InvestingStockListRetreiver').runGetAllUsaStocksTask();
 
 }
