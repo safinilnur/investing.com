@@ -6,6 +6,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
+    this.setInitialDistribution = setInitialDistribution;
 
     const storageKey = "favouriteStocksAnalitycs";
 
@@ -116,7 +117,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                 "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" +
                 "<td>"+i.stockPrice+"</td>"+
                 "<td>"+i.yearRate+"</td>"+
-                "<td>"+i.historicalData.percentTenDaysFall+"</td>"+
+                "<td>-"+i.historicalData.percentTenDaysFall+"%</td>"+
                 "<td>"+(i.countToBuy||"")+"</td>"+
                 "<td><input type='checkbox' id='"+i.id+"'/></td>"+
             "</tr>"
@@ -132,7 +133,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                 "<th>Участие</th>" +
             "</tr>" +
 
-            itemsHtml+
+            itemsHtml.join('')+
 
             "<tr><td colspan='7'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
             "<tr><td colspan='7'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
@@ -182,19 +183,20 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function sortStocksByPriority(a, b){ // todo move to extra module
-        if (a.technicalSummary < b.technicalSummary) // sort by technicalSummary
+        if (getStockGainPriorityRate(a) < getStockGainPriorityRate(b)) // sort by technicalSummary
             return 1;
-        else if (a.technicalSummary > b.technicalSummary)
+        else
             return -1;
-        else{
-            if (a.historicalData.percentTenDaysFall < b.historicalData.percentTenDaysFall) // then by yearRate
-                return 1;
-            else if (a.historicalData.percentTenDaysFall > b.historicalData.percentTenDaysFall)
-                return -1;
-            else
-                return 0;
-        }
     }
+
+    function getStockGainPriorityRate(stock){
+        let tenDaysFailRate = stock.historicalData.percentTenDaysFall + 1;
+        let yearRate = stock.yearRate;
+        let riskRate = 0.0125*yearRate + 0.5;
+
+        return tenDaysFailRate*yearRate*riskRate;
+    }
+
 
     function splitMoneyByChoosenStocks(items){
         var curVolume = FinamFavouriteStocks.portfolioVolume;

@@ -1545,6 +1545,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
+    this.setInitialDistribution = setInitialDistribution;
 
     var storageKey = "favouriteStocksAnalitycs";
 
@@ -1649,9 +1650,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         splitMoneyByChoosenStocks(items);
 
         var itemsHtml = items.map(function (i) {
-            return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>" + i.historicalData.percentTenDaysFall + "</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "</tr>";
+            return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>-" + i.historicalData.percentTenDaysFall + "%</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "</tr>";
         });
-        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "</tr>" + itemsHtml + "<tr><td colspan='7'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='7'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "<tr><td colspan='7'>" + "<button id='close-favourite-stocks-report'>Очистить</button>" + "<button id='do-initial-sort'>Исходная сортировка</button>" + "</td></tr>" + "</table></div>";
+        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "</tr>" + itemsHtml.join('') + "<tr><td colspan='7'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='7'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "<tr><td colspan='7'>" + "<button id='close-favourite-stocks-report'>Очистить</button>" + "<button id='do-initial-sort'>Исходная сортировка</button>" + "</td></tr>" + "</table></div>";
         $('body').html(resultHtml);
 
         CssStockRecommendations.appendStyle();
@@ -1693,11 +1694,16 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
     function sortStocksByPriority(a, b) {
         // todo move to extra module
-        if (a.technicalSummary < b.technicalSummary) // sort by technicalSummary
-            return 1;else if (a.technicalSummary > b.technicalSummary) return -1;else {
-            if (a.historicalData.percentTenDaysFall < b.historicalData.percentTenDaysFall) // then by yearRate
-                return 1;else if (a.historicalData.percentTenDaysFall > b.historicalData.percentTenDaysFall) return -1;else return 0;
-        }
+        if (getStockGainPriorityRate(a) < getStockGainPriorityRate(b)) // sort by technicalSummary
+            return 1;else return -1;
+    }
+
+    function getStockGainPriorityRate(stock) {
+        var tenDaysFailRate = stock.historicalData.percentTenDaysFall + 1;
+        var yearRate = stock.yearRate;
+        var riskRate = 0.0125 * yearRate + 0.5;
+
+        return tenDaysFailRate * yearRate * riskRate;
     }
 
     function splitMoneyByChoosenStocks(items) {
