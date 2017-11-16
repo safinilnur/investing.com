@@ -28,7 +28,6 @@ function GetSpbStockList() {
         }
 
         appendStocksData(data);
-        debugger;
         collectByUrls(urls, data, urlsCollectedCallback);
     }
 

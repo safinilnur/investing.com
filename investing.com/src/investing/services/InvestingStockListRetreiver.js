@@ -7,8 +7,6 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
     this.runGetAllUsaStocksTask = runGetAllUsaStocksTask;
 
     function getAllUsaStocks() {
-        debugger;
-
         if (location.href != "https://ru.investing.com/equities/united-states"){
             throw "use page https://ru.investing.com/equities/united-states to run this script";
         }
@@ -20,7 +18,6 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
     }
 
     function runGetAllUsaStocksTask() {
-        debugger;
         let stocks = LocalStorageHelper.get("StockBaseInfoToCollect");
 
         let stockToCollect = stocks && stocks.find(e=> !e.dataCollected);

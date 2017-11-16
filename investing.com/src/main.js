@@ -6,7 +6,8 @@ function registerInfrastructure(){
 
     var ctx = _investStocks.ctx;
 
-	require('./investing/consts/stockExchange');
+    require('./common/helpers/digitsHelper');
+    require('./investing/consts/stockExchange');
     require('./brokers/finam/stockList');
     require('./brokers/tinkoff/stockList');
     require('./investing/consts/InvestingStockList');
@@ -19,6 +20,7 @@ function registerInfrastructure(){
     require('./investing/favouriteStocksAnalyzer/storageHelper');
     require('./investing/favouriteStocksAnalyzer/loadingStrategies/mainStockInfoStrategy');
     require('./investing/favouriteStocksAnalyzer/loadingStrategies/historicalStockInfoStrategy');
+    require('./investing/favouriteStocksAnalyzer/loadingStrategies/financialSummaryStockInfoStrategy');
     require('./investing/favouriteStocksAnalyzer/favouriteStocksAnalyzer');
 
     require('./investing/consts/stockRecommendations');

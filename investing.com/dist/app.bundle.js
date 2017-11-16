@@ -86,14 +86,14 @@ function registerInfrastructure() {
     __webpack_require__(9);
     __webpack_require__(10);
     __webpack_require__(11);
-
     __webpack_require__(12);
+
     __webpack_require__(13);
     __webpack_require__(14);
     __webpack_require__(15);
-
     __webpack_require__(16);
     __webpack_require__(17);
+
     __webpack_require__(18);
     __webpack_require__(19);
     __webpack_require__(20);
@@ -102,6 +102,8 @@ function registerInfrastructure() {
     __webpack_require__(23);
     __webpack_require__(24);
     __webpack_require__(25);
+    __webpack_require__(26);
+    __webpack_require__(27);
 
     _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
     _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
@@ -642,6 +644,25 @@ module.exports = _investStocks.ctx;
 "use strict";
 
 
+_investStocks.ctx.register("DigitsHelper").asCtor(DigitsHelper);
+
+function DigitsHelper() {
+    this.toFloat = toFloat;
+
+    function toFloat(str) {
+        str = str.replace(/[ %]/g, '').replace(',', '.');
+        if (str == "-") str = "0";
+        return parseFloat(str);
+    }
+}
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 _investStocks.ctx.register("InvestingStockExchanges").asCtor(InvestingStockExchanges);
 
 function InvestingStockExchanges() {
@@ -653,7 +674,7 @@ function InvestingStockExchanges() {
 }
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -713,7 +734,7 @@ function FinamStockList() {
 }
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -755,7 +776,7 @@ function TinkoffStockList() {
 }
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -815,7 +836,7 @@ function InvestingStockList() {
 }
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -845,7 +866,7 @@ function BrokersFactory(BrokersList) {
 }
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -864,7 +885,7 @@ function BrokersList() {
 }
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1009,7 +1030,7 @@ function LoadYearStatistics(brokersFactory, finamStockList, htmlDecoder) {
 }
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1030,7 +1051,7 @@ function HtmlDecoder() {
 }
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1538,7 +1559,7 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
 }
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1580,7 +1601,7 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
 }
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1640,7 +1661,7 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
 }
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1692,21 +1713,132 @@ function FinamHistoricalStockInfoLoadingStrategy(FinamStockRecommendationTypes, 
 }
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-_investStocks.ctx.register("FavouriteStocksAnalyzer").asCtor(FavouriteStocksAnalyzer).dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," + "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper");
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations, FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper) {
+_investStocks.ctx.register("FinancialSummaryStockInfoLoadingStrategy").asCtor(FinancialSummaryStockInfoLoadingStrategy).dependencies("FavouriteStocksAnalyzerStorageHelper, DigitsHelper");
+
+function FinancialSummaryStockInfoLoadingStrategy(FavouriteStocksAnalyzerStorageHelper, DigitsHelper) {
+    this.getStrategy = getStrategy;
+
+    var allStocksStatistics = {};
+
+    function getStrategy() {
+        return {
+            name: "financialSummary",
+            getUrl: function getUrl(url) {
+                return url + "-financial-summary";
+            },
+            loadData: attachFinancialSummaryStockInfo,
+            getRate: getRate,
+            combineAllStocksStatistics: combineAllStocksStatistics
+        };
+    }
+
+    function getRate(stock) {
+        var weights = [{ property: "GrossProfit", weight: 1 }, { property: "OperatingMargin", weight: 1.5 }, { property: "ProfitabilityRatios", weight: 1 }, { property: "ReturnOnInvestment", weight: 1.3 }];
+
+        var result = 0;
+
+        weights.forEach(function (weight) {
+            result += getMappedCoefficientFrom1To2(stock, weight.property) * weight.weight;
+        });
+
+        var weightsValues = weights.map(function (w) {
+            return w.weight;
+        });
+        var sumWeights = weightsValues.reduce(function (a, b) {
+            return a + b;
+        }, 0);
+        result = result / sumWeights;
+
+        return result;
+    }
+
+    function attachFinancialSummaryStockInfo(item) {
+
+        item.financialSummary = {
+            GrossProfit: getGrossProfit(),
+            OperatingMargin: getOperatingMargin(),
+            ProfitabilityRatios: getProfitabilityRatios(),
+            ReturnOnInvestment: getReturnOnInvestment()
+        };
+
+        item.financialSummaryDataCollected = true;
+        FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(item);
+    }
+
+    function getMappedCoefficientFrom1To2(stock, property) {
+        var range = allStocksStatistics["max" + property] - allStocksStatistics["min" + property];
+        var valueInRange = stock.financialSummary[property] - allStocksStatistics["min" + property];
+        var rate = valueInRange / range;
+        return rate + 1;
+    }
+
+    function combineAllStocksStatistics() {
+        var stocks = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+
+        allStocksStatistics = {
+            minGrossProfit: getMinMaxValue(stocks, "min", "GrossProfit"),
+            maxGrossProfit: getMinMaxValue(stocks, "max", "GrossProfit"),
+            minOperatingMargin: getMinMaxValue(stocks, "min", "OperatingMargin"),
+            maxOperatingMargin: getMinMaxValue(stocks, "max", "OperatingMargin"),
+            minProfitabilityRatios: getMinMaxValue(stocks, "min", "ProfitabilityRatios"),
+            maxProfitabilityRatios: getMinMaxValue(stocks, "max", "ProfitabilityRatios"),
+            minReturnOnInvestment: getMinMaxValue(stocks, "min", "ReturnOnInvestment"),
+            maxReturnOnInvestment: getMinMaxValue(stocks, "max", "ReturnOnInvestment")
+        };
+    }
+
+    function getMinMaxValue(stocks, minOrMax, property) {
+        var values = stocks.map(function (stock) {
+            return stock.financialSummary[property];
+        });
+        return minOrMax == "min" ? Math.min.apply(Math, _toConsumableArray(values)) : Math.max.apply(Math, _toConsumableArray(values));
+    }
+
+    function getGrossProfit() {
+        var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(1) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
+        return DigitsHelper.toFloat(strVal);
+    }
+
+    function getOperatingMargin() {
+        var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(2) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
+        return DigitsHelper.toFloat(strVal);
+    }
+
+    function getProfitabilityRatios() {
+        var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(3) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
+        return DigitsHelper.toFloat(strVal);
+    }
+
+    function getReturnOnInvestment() {
+        var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(4) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
+        return DigitsHelper.toFloat(strVal);
+    }
+}
+
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("FavouriteStocksAnalyzer").asCtor(FavouriteStocksAnalyzer).dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," + "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper," + "FinancialSummaryStockInfoLoadingStrategy");
+
+function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations, FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper, FinancialSummaryStockInfoLoadingStrategy) {
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
     this.setInitialDistribution = setInitialDistribution;
 
-    var loadingDataStrategies = [FinamMainStockInfoLoadingStrategy.getStrategy(), FinamHistoricalStockInfoLoadingStrategy.getStrategy()];
+    var loadingDataStrategies = [FinamMainStockInfoLoadingStrategy.getStrategy(), FinamHistoricalStockInfoLoadingStrategy.getStrategy(), FinancialSummaryStockInfoLoadingStrategy.getStrategy()];
 
     function run(collectProfitableStock) {
         FavouriteStocksAnalyzerStorageHelper.clearPreviousData();
@@ -1774,6 +1906,10 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             return;
         }
 
+        loadingDataStrategies.forEach(function (strategy) {
+            return strategy.combineAllStocksStatistics && strategy.combineAllStocksStatistics();
+        });
+
         items = items.sort(sortStocksByPriority);
 
         for (var i = 0; i < 5; i++) {
@@ -1809,7 +1945,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
         $('#do-initial-sort').unbind('click');
         $('#do-initial-sort').bind('click', function () {
-            debugger;
             setInitialDistribution();
         });
     }
@@ -1835,7 +1970,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
     function sortStocksByPriority(a, b) {
         // todo move to extra module
-        debugger;
         return getStockGainPriorityRate(a) < getStockGainPriorityRate(b) ? 1 : -1;
     }
 
@@ -1909,7 +2043,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 }
 
 /***/ }),
-/* 16 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1951,7 +2085,7 @@ function FinamStockRecommendationTypes() {
 }
 
 /***/ }),
-/* 17 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1975,7 +2109,7 @@ function CssStockRecommendations() {
 }
 
 /***/ }),
-/* 18 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1992,7 +2126,7 @@ function InvestingAvailablefunctions() {
 }
 
 /***/ }),
-/* 19 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2027,7 +2161,6 @@ function GetSpbStockList() {
         }
 
         appendStocksData(data);
-        debugger;
         collectByUrls(urls, data, urlsCollectedCallback);
     }
 
@@ -2077,7 +2210,7 @@ function GetSpbStockList() {
 }
 
 /***/ }),
-/* 20 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2651,7 +2784,7 @@ function SpbStockList() {
 }
 
 /***/ }),
-/* 21 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2664,8 +2797,6 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
     this.runGetAllUsaStocksTask = runGetAllUsaStocksTask;
 
     function getAllUsaStocks() {
-        debugger;
-
         if (location.href != "https://ru.investing.com/equities/united-states") {
             throw "use page https://ru.investing.com/equities/united-states to run this script";
         }
@@ -2677,7 +2808,6 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
     }
 
     function runGetAllUsaStocksTask() {
-        debugger;
         var stocks = LocalStorageHelper.get("StockBaseInfoToCollect");
 
         var stockToCollect = stocks && stocks.find(function (e) {
@@ -2738,7 +2868,7 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
 }
 
 /***/ }),
-/* 22 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2769,7 +2899,7 @@ function LocalStorageHelper() {
 }
 
 /***/ }),
-/* 23 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3805,7 +3935,7 @@ function AllUsaStocks() {
 }
 
 /***/ }),
-/* 24 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3855,7 +3985,7 @@ function FavouriteStocksFiltering(FinamFavouriteStocks, FavouriteStocksAnalyzer,
 }
 
 /***/ }),
-/* 25 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";

@@ -1,10 +1,12 @@
 _investStocks.ctx.register("FavouriteStocksAnalyzer")
     .asCtor(FavouriteStocksAnalyzer)
     .dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," +
-        "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper");
+        "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper," +
+        "FinancialSummaryStockInfoLoadingStrategy");
 
 function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations,
-                                 FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper){
+                                 FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper,
+                                 FinancialSummaryStockInfoLoadingStrategy){
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
@@ -13,6 +15,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     const loadingDataStrategies = [
         FinamMainStockInfoLoadingStrategy.getStrategy(),
         FinamHistoricalStockInfoLoadingStrategy.getStrategy(),
+        FinancialSummaryStockInfoLoadingStrategy.getStrategy(),
     ];
 
     function run(collectProfitableStock){
@@ -60,6 +63,10 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         if (!items || !items.length){
             return;
         }
+
+        loadingDataStrategies.forEach(strategy =>
+            strategy.combineAllStocksStatistics &&
+            strategy.combineAllStocksStatistics());
 
         items = items.sort(sortStocksByPriority);
 
@@ -125,7 +132,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
         $('#do-initial-sort').unbind('click');
         $('#do-initial-sort').bind('click', ()=>{
-            debugger;
             setInitialDistribution();
         })
     }
@@ -148,7 +154,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function sortStocksByPriority(a, b){ // todo move to extra module
-        debugger;
         return getStockGainPriorityRate(a) < getStockGainPriorityRate(b)
             ? 1
             : -1;
