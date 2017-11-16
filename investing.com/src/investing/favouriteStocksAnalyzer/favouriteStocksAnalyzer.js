@@ -148,18 +148,16 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function sortStocksByPriority(a, b){ // todo move to extra module
-        if (getStockGainPriorityRate(a) < getStockGainPriorityRate(b)) // sort by technicalSummary
-            return 1;
-        else
-            return -1;
+        debugger;
+        return getStockGainPriorityRate(a) < getStockGainPriorityRate(b)
+            ? 1
+            : -1;
     }
 
     function getStockGainPriorityRate(stock){
-        let tenDaysFailRate = stock.historicalData.percentTenDaysFall + 1;
-        let yearRate = stock.yearRate;
-        let riskRate = 0.0125*yearRate + 0.5;
-
-        return tenDaysFailRate*yearRate*riskRate;
+        return loadingDataStrategies.reduce(function(totalRate, currentStrategy) {
+            return totalRate * currentStrategy.getRate(stock);
+        }, 1);
     }
 
     function splitMoneyByChoosenStocks(items){

@@ -9,8 +9,16 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         return {
             name: "main",
             getUrl: url => url,
-            loadData: attachMainStockInfo
+            loadData: attachMainStockInfo,
+            getRate: getRate,
         };
+    }
+
+    function getRate(stock) {
+        let yearRate = stock.yearRate;
+        let riskRate = 0.0125*yearRate + 0.5;
+
+        return yearRate*riskRate;
     }
 
     function attachMainStockInfo(item){

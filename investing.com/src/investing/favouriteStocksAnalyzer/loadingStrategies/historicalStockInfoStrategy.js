@@ -9,8 +9,13 @@ function FinamHistoricalStockInfoLoadingStrategy(FinamStockRecommendationTypes, 
         return  {
             name: "historical",
             getUrl: url => url + "-historical-data",
-            loadData: attachHistoricalStockInfo
+            loadData: attachHistoricalStockInfo,
+            getRate: getRate,
         };
+    }
+
+    function getRate(stock) {
+        return stock.historicalData.percentTenDaysFall + 1;
     }
 
     function attachHistoricalStockInfo(item){
