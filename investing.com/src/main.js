@@ -15,7 +15,12 @@ function registerInfrastructure(){
     require('./investing/pageLoader/loadYearStatistics');
     require('./helpers/htmlDecoder');
     require('./investing/userData/favouriteStoks');
+
+    require('./investing/favouriteStocksAnalyzer/storageHelper');
+    require('./investing/favouriteStocksAnalyzer/loadingStrategies/mainStockInfoStrategy');
+    require('./investing/favouriteStocksAnalyzer/loadingStrategies/historicalStockInfoStrategy');
     require('./investing/favouriteStocksAnalyzer/favouriteStocksAnalyzer');
+
     require('./investing/consts/stockRecommendations');
     require('../styles/CssStockRecommendations');
     require('./investing/services/InvestingAvailablefunctions');

@@ -1,94 +1,61 @@
 _investStocks.ctx.register("FavouriteStocksAnalyzer")
     .asCtor(FavouriteStocksAnalyzer)
-    .dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations");
+    .dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," +
+        "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper");
 
-function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations){
+function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations,
+                                 FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper){
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
     this.setInitialDistribution = setInitialDistribution;
 
-    const storageKey = "favouriteStocksAnalitycs";
+    const loadingDataStrategies = [
+        FinamMainStockInfoLoadingStrategy.getStrategy(),
+        FinamHistoricalStockInfoLoadingStrategy.getStrategy(),
+    ];
 
     function run(collectProfitableStock){
-        clearPreviousData();
+        FavouriteStocksAnalyzerStorageHelper.clearPreviousData();
         setInitialData(collectProfitableStock);
         loadData();
     }
 
-    function loadData(){
-        if (hasNotLoadedItems("main")){
-            var itemToLoad = getNotLoadedItem("main");
-
-            if (location.href != itemToLoad.url){
-                location.href = itemToLoad.url;
-            } else {
-                attachMainStockInfo(itemToLoad);
-                if (hasNotLoadedItems("main")){
-                    var itemToLoad = getNotLoadedItem("main");
-                    if (location.href != itemToLoad.url){
-                        location.href = itemToLoad.url;
-                    }
-                } else {
-                    loadHistoricalData();
-                }
-            }
-        }  else { loadHistoricalData(); }
+    function getNextStrategy(){
+        for (let strategy of loadingDataStrategies) {
+            if (hasNotLoadedItems(strategy.name))
+                return strategy;
+        }
     }
 
-    function loadHistoricalData(){
-        if (hasNotLoadedItems("historical")){
-            var itemToLoad = getNotLoadedItem("historical");
-
-            if (location.href != itemToLoad.url+"-historical-data"){
-                location.href = itemToLoad.url+"-historical-data";
-            } else {
-                attachHistoricalStockInfo(itemToLoad);// todo
-                if (hasNotLoadedItems("historical")){
-                    var itemToLoad = getNotLoadedItem("historical");
-                    if (location.href != itemToLoad.url+"-historical-data"){
-                        location.href = itemToLoad.url+"-historical-data";
-                    }
-                } else {
-                    setInitialDistribution();
-                    showStatistics();
-                    //clearPreviousData(); // comment for debug
-                }
-            }
-        }  else { showStatistics(); } // uncomment for debug
-    }
-
-    function attachHistoricalStockInfo(item){
-        var rows = $('.historicalTbl tbody tr');
-        if (rows.length<15)
-            throw "Rows count should be more than 15 for historical data. Something went wrong..."
-
-        item.historicalData = {};
-
-        for (var i=0; i<rows.length; i++){
-            var row = rows[i];
-            item.historicalData[i] = {
-                maxPrice: parseFloat($($(row).find('td')[3]).html().replace('.','').replace(',','.'))
-            };
+    function loadData() {
+        let strategy = getNextStrategy();
+        if (!strategy) {
+            showStatistics();
+            return;
         }
 
-        item.historicalData.maxLastTenDaysPrice = item.historicalData[0].maxPrice;
-        for (var i=1; i<10; i++){
-            if (item.historicalData.maxLastTenDaysPrice < item.historicalData[i].maxPrice)
-                item.historicalData.maxLastTenDaysPrice = item.historicalData[i].maxPrice;
+        let itemToLoad = getNotLoadedItem(strategy.name);
+
+        if (location.href != strategy.getUrl(itemToLoad.url)) {
+            location.href = strategy.getUrl(itemToLoad.url);
+        } else {
+            strategy.loadData(itemToLoad);
+
+            let nextStrategy = getNextStrategy();
+
+            if (nextStrategy) {
+                itemToLoad = getNotLoadedItem(nextStrategy.name);
+                location.href = nextStrategy.getUrl(itemToLoad.url);
+            } else {
+                setInitialDistribution();
+                showStatistics();
+            }
         }
-
-        debugger;
-        item.historicalData.percentTenDaysFall = item.historicalData.maxLastTenDaysPrice > item.stockPrice
-            ? Math.round((item.historicalData.maxLastTenDaysPrice - item.stockPrice)/item.stockPrice*100 * 100)/100
-            : 0;
-
-        item.historicalDataCollected = true;
-        saveItemInStorage(item);
     }
-    
+
     function setInitialDistribution(){
-        let items = getStorageData();
+        let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
 
         if (!items || !items.length){
             return;
@@ -96,14 +63,14 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
         items = items.sort(sortStocksByPriority);
 
-        for (var i=0; i<5; i++)
+        for (let i=0; i<5; i++)
             items[i].inPortfolio = true;
-        
-        saveData(items);
+
+        FavouriteStocksAnalyzerStorageHelper.saveData(items);
     }
 
     function showStatistics(){
-        let items = getStorageData();
+        let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
 
         if (!items.length){
             return;
@@ -152,7 +119,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     function initializeButtonsEvents(){
         $('#close-favourite-stocks-report').unbind('click');
         $('#close-favourite-stocks-report').bind('click', ()=>{
-            clearPreviousData();
+            FavouriteStocksAnalyzerStorageHelper.clearPreviousData();
         });
 
 
@@ -163,8 +130,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         })
     }
 
-
-
     function initializeCheckBoxes(items){
         items.forEach(i=>{
             if (i.countToBuy){
@@ -172,11 +137,11 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             }
             $('#'+i.id).unbind('click');
             $('#'+i.id).bind('click', (el)=>{
-                var items = getStorageData();
-                var id = $(el.currentTarget).attr('id')
-                var stock = items.find(e=> e.id == id);
+                let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+                let id = $(el.currentTarget).attr('id');
+                let stock = items.find(e=> e.id == id);
                 stock.inPortfolio = $(el.currentTarget).is(':checked');
-                saveItemInStorage(stock);
+                FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(stock);
                 showStatistics();
             });
         });
@@ -197,14 +162,13 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         return tenDaysFailRate*yearRate*riskRate;
     }
 
-
     function splitMoneyByChoosenStocks(items){
-        var curVolume = FinamFavouriteStocks.portfolioVolume;
-        var positionsCount = items.filter(item => item.inPortfolio).length;
-        var perStock = curVolume/positionsCount;
+        let curVolume = FinamFavouriteStocks.portfolioVolume;
+        let positionsCount = items.filter(item => item.inPortfolio).length;
+        let perStock = curVolume/positionsCount;
 
-        var sum = 0;
-        for (var i=0; i<items.length; i++){
+        let sum = 0;
+        for (let i=0; i<items.length; i++){
             let item = items[i];
 
             if (!item.inPortfolio)
@@ -218,7 +182,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         while(portfolioChanged){
             portfolioChanged = false;
 
-            for (var i=0; i<items.length; i++){
+            for (let i=0; i<items.length; i++){
                 let item = items[i];
 
                 if (!item.inPortfolio)
@@ -239,83 +203,23 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
         return FinamFavouriteStocks.portfolioVolume - total;
     }
-
-    function attachMainStockInfo(item){
-        let minimalEstimation = getMinimalEstimation();
-        let stockPrice = getStockPrice();
-        let yearRate = getYearRate();
-
-        item.technicalSummary =minimalEstimation;
-        item.stockPrice = stockPrice;
-        item.mainDataCollected = true;
-        item.yearRate = yearRate;
-        saveItemInStorage(item);
-    }
-
-    function getYearRate(){
-        if ($('#leftColumn > div.clear.overviewDataTable > div:nth-child(13) > span.float_lang_base_1').html() == "Изменение за год")
-        {
-            var rateWithPercent = $('#leftColumn > div.clear.overviewDataTable > div:nth-child(13) > span.float_lang_base_2.bold').html();
-            var rate =  parseFloat(rateWithPercent.slice(0, -1).replace(/[ ]/g,'').replace(",","."));
-
-            return rate;
-        }
-    }
-
-    function getStockPrice(){ // todo move
-        let stockPrice = parseFloat($('#last_last').html().replace(".","").replace(",","."));
-
-        return stockPrice;
-    }
-
-    function getMinimalEstimation(){ // todo move to separate module
-        let hourTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(4)').html();
-        let dayTechnioalSummary = $('.technicalSummaryTbl > tbody > tr:nth-child(3) > td:nth-child(5)').html();
-        let minimalEstimation = FinamStockRecommendationTypes.getMinimalEstimation([hourTechnioalSummary, dayTechnioalSummary]);
-
-        return minimalEstimation;
-    }
-
+    
     function hasNotLoadedItems(type){
         return getNotLoadedItem(type) != null;
     }
 
     function getNotLoadedItem(type){
-        var propName = type+"DataCollected";
-        return getStorageData().find(s=> !s[propName]);
+        let propName = type+"DataCollected";
+        return FavouriteStocksAnalyzerStorageHelper.getStorageData().find(s=> !s[propName]);
     }
 
     function setInitialData(collectProfitableStock){
-        var dataToCollect = FinamFavouriteStocks.getAll(collectProfitableStock).map(s=> {
+        let dataToCollect = FinamFavouriteStocks.getAll(collectProfitableStock).map(s=> {
             s.mainDataCollected = false;
             return s;
         });
 
-        saveData(dataToCollect);
-    }
-
-    function saveItemInStorage(itemToSave){
-        var items = getStorageData();
-
-        items.forEach(function(item, i) {
-            if (item.name == itemToSave.name) {
-                items[i] = itemToSave;
-            }
-        });
-
-        saveData(items);
-    }
-
-    function getStorageData(){
-        return JSON.parse(localStorage.getItem(storageKey)) || [];
-    }
-
-    function saveData(data){
-        localStorage.setItem(storageKey, JSON.stringify(data));
-    }
-
-    function clearPreviousData(){
-        localStorage.removeItem(storageKey);
+        FavouriteStocksAnalyzerStorageHelper.saveData(dataToCollect);
     }
 
 }
