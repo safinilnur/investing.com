@@ -1803,23 +1803,39 @@ function FinancialSummaryStockInfoLoadingStrategy(FavouriteStocksAnalyzerStorage
     }
 
     function getGrossProfit() {
-        var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(1) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
-        return DigitsHelper.toFloat(strVal);
+        try {
+            var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(1) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
+            return DigitsHelper.toFloat(strVal);
+        } catch (e) {
+            return 0;
+        }
     }
 
     function getOperatingMargin() {
-        var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(2) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
-        return DigitsHelper.toFloat(strVal);
+        try {
+            var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(2) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
+            return DigitsHelper.toFloat(strVal);
+        } catch (e) {
+            return 0;
+        }
     }
 
     function getProfitabilityRatios() {
-        var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(3) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
-        return DigitsHelper.toFloat(strVal);
+        try {
+            var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(3) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
+            return DigitsHelper.toFloat(strVal);
+        } catch (e) {
+            return 0;
+        }
     }
 
     function getReturnOnInvestment() {
-        var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(4) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
-        return DigitsHelper.toFloat(strVal);
+        try {
+            var strVal = $('#rsdiv').find('> div:nth-child(1) > div.info.float_lang_base_2 > div:nth-child(4) > span.float_lang_base_2.text_align_lang_base_2.dirLtr.bold').html();
+            return DigitsHelper.toFloat(strVal);
+        } catch (e) {
+            return 0;
+        }
     }
 }
 
