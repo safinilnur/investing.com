@@ -7,8 +7,11 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
     this.getStorageData = getStorageData;
     this.saveData = saveData;
     this.clearPreviousData = clearPreviousData;
+    this.setNextUrl = setNextUrl;
+    this.getNextUrl = getNextUrl;
 
     let storageKey = InvestingConsts.favouriteStocksStatisticsLocalStorageKey;
+    let storageKeyNextUrlToFetchData = ""
 
     function saveItemInStorage(itemToSave) {
         let items = getStorageData();
@@ -20,6 +23,18 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
         });
 
         saveData(items);
+    }
+
+    function setNextUrl(url){
+        localStorage.setItem(storageKeyNextUrlToFetchData, url);
+    }
+
+    function getNextUrl(){
+        return localStorage.getItem(storageKeyNextUrlToFetchData);
+    }
+
+    function clearNextUrl(){
+        localStorage.removeItem(storageKeyNextUrlToFetchData);
     }
 
     function getStorageData(){
