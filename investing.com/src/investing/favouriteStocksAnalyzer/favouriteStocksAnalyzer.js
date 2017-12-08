@@ -6,7 +6,7 @@ _investStocks.ctx.register("FavouriteStocksAnalyzer")
 
 function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations,
                                  FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper,
-                                 FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper){
+                                 FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper) {
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
@@ -18,21 +18,20 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         FinancialSummaryStockInfoLoadingStrategy.getStrategy(),
     ];
 
-    function run(collectProfitableStock){ // todo - dont use this param
-        // FavouriteStocksAnalyzerStorageHelper.clearPreviousData(); todo update list
-        //setInitialData(collectProfitableStock);
+    function run(collectProfitableStock) { // todo - dont use this param
+        setInitialData(collectProfitableStock);
         FavouriteStocksAnalyzerStorageHelper.clearNextUrl();
         loadData();
     }
 
-    function getNextStrategy(){
+    function getNextStrategy() {
         let stockWithMinUpdatedStrategyTime = new Date().getTime();
         let nextStrategy;
 
         for (let strategy of loadingDataStrategies) {
             let time = getMinStockUpdatedTime(strategy);
 
-            if(time < stockWithMinUpdatedStrategyTime){
+            if (time < stockWithMinUpdatedStrategyTime) {
                 stockWithMinUpdatedStrategyTime = time;
                 nextStrategy = strategy;
             }
@@ -41,26 +40,26 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         return {strategy: nextStrategy, time: stockWithMinUpdatedStrategyTime};
     }
 
-    function getStockLastUpdatedTime(stock){
+    function getStockLastUpdatedTime(stock) {
         let times = loadingDataStrategies.map(strategy => getStockStrategyTime(strategy, stock));
 
         return Math.min(...times);
     }
 
-    function getStockStrategyTime(strategy, stock){
+    function getStockStrategyTime(strategy, stock) {
         return stock[strategy.name + "TimeUpdated"] || 0;
     }
 
-    function getMinStockUpdatedTime(strategy){
+    function getMinStockUpdatedTime(strategy) {
         let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
-        let updatedTimes = items.map(e=> e[strategy.name + "TimeUpdated"] || 0);
+        let updatedTimes = items.map(e => e[strategy.name + "TimeUpdated"] || 0);
 
         return Math.min(...updatedTimes);
     }
 
     function loadData() {
 
-        if (location.href.includes('getStatistics')){
+        if (location.href.includes('getStatistics')) {
             showStatistics();
             return;
         }
@@ -69,15 +68,15 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         let wasUpdateSent = sendUpdatesIfTopStocksChanged(4);
 
         debugger;
-        if (!wasUpdateSent){
+        if (!wasUpdateSent) {
             doStrategy();
-        }else{
+        } else {
             // need to wait while another tab will be opened
             setTimeout(doStrategy, 3000);
         }
     }
 
-    function doStrategy(){
+    function doStrategy() {
         let strategyAndTime = getNextStrategy();
         let strategy = strategyAndTime.strategy;
         let time = strategyAndTime.time;
@@ -93,8 +92,8 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         if (location.href != strategy.getUrl(itemToLoad.url)) {
             let nextUrlToContinue = FavouriteStocksAnalyzerStorageHelper.getNextUrl();
 
-            if(nextUrlToContinue && location.href != nextUrlToContinue){
-                console.log('to load statistics - continue from page '+ FavouriteStocksAnalyzerStorageHelper.getNextUrl());
+            if (nextUrlToContinue && location.href != nextUrlToContinue) {
+                console.log('to load statistics - continue from page ' + FavouriteStocksAnalyzerStorageHelper.getNextUrl());
                 return;
             }
 
@@ -117,57 +116,65 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         }
     }
 
-    function sendUpdatesIfTopStocksChanged(topStocksCount){
-        setInitialDistribution();
+    // result - if update was sent (new window open was called)
+    function sendUpdatesIfTopStocksChanged(topStocksCount) {
+        try {
 
-        let stocks =FavouriteStocksAnalyzerStorageHelper.getStorageData();
-        let topStocks = stocks.slice(0, topStocksCount);
+            setInitialDistribution();
 
-        let topStocksHash = topStocks.map(s=> s.name).join();
+            let stocks = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+            let topStocks = stocks.slice(0, topStocksCount);
 
-        if (FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocks() == topStocksHash){
+            let topStocksHash = topStocks.map(s => s.name).join();
+
+            if (FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocks() == topStocksHash) {
+                return false;
+            }
+
+            FavouriteStocksAnalyzerStorageHelper.setLastSentTopStocks(topStocksHash);
+
+            let stocksDto = topStocks.map(s => ({
+                name: s.name,
+                url: s.url,
+                maxPrice: s.historicalData.maxLastTenDaysPrice,
+                percentTenDaysFall: s.historicalData.percentTenDaysFall,
+                price: s.stockPrice,
+                yearRate: s.yearRate,
+            }));
+            let stocksDtoJson = JSON.stringify(stocksDto);
+
+            sendToVkontakte(stocksDtoJson);
+
+            return true;
+        }
+        catch(er){
+            console.error("Couldn't send updates about stocks.");
             return false;
         }
-
-        FavouriteStocksAnalyzerStorageHelper.setLastSentTopStocks(topStocksHash);
-
-        let stocksDto = topStocks.map(s => ({
-            name: s.name,
-            url: s.url,
-            maxPrice: s.historicalData.maxLastTenDaysPrice,
-            percentTenDaysFall:s.historicalData.percentTenDaysFall,
-            price: s.stockPrice,
-            yearRate: s.yearRate,
-        }));
-        let stocksDtoJson = JSON.stringify(stocksDto);
-
-        sendToVkontakte(stocksDtoJson);
-
-        return true;
     }
 
     function sendToVkontakte(stocksDtoJson) {
         jsHelper.openInNewWindow("GET", "https://vk.com/club157318779",
             [
-               // {Value: "p", Text: "@usa_stocks"},
+                // {Value: "p", Text: "@usa_stocks"},
                 {Value: "stocks", Text: stocksDtoJson}
             ]);
     }
 
-    function setupTopStocksToBeUpdated(topStocksCount, limitBeforeUpdatingTopStocks){
+    function setupTopStocksToBeUpdated(topStocksCount, limitBeforeUpdatingTopStocks) {
         // for example each time when we updated already x=50 stocks - update 10 top stocks and continue updating others
         FavouriteStocksAnalyzerStorageHelper.increasePageRefreshCount();
         let refreshCount = FavouriteStocksAnalyzerStorageHelper.getPageRefreshCount();
-        if (refreshCount % ((loadingDataStrategies.length)*(topStocksCount + limitBeforeUpdatingTopStocks)) == 0){
+        if (refreshCount % ((loadingDataStrategies.length) * (topStocksCount + limitBeforeUpdatingTopStocks)) == 0) {
             setTopStocksToBeUpdated(topStocksCount);
             FavouriteStocksAnalyzerStorageHelper.clearNextUrl();
         }
     }
 
-    function setInitialDistribution(){
+    function setInitialDistribution() {
         let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
 
-        if (!items || !items.length){
+        if (!items || !items.length) {
             return;
         }
 
@@ -175,109 +182,115 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
         items = items.sort(sortStocksByPriority);
 
-        for (let i=0; i<5; i++)
+        for (let i = 0; i < 5; i++)
             items[i].inPortfolio = true;
 
         FavouriteStocksAnalyzerStorageHelper.saveData(items);
     }
 
-    function prepareOverallStrategyStatistics(){
+    function prepareOverallStrategyStatistics() {
         loadingDataStrategies.forEach(strategy =>
             strategy.combineAllStocksStatistics &&
             strategy.combineAllStocksStatistics());
     }
 
-    function showStatistics(){
-        prepareOverallStrategyStatistics();
+    function showStatistics() {
+        try {
 
-        let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+            prepareOverallStrategyStatistics();
 
-        if (!items.length){
-            return;
-        }
+            let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
 
-        splitMoneyByChoosenStocks(items);
+            if (!items.length) {
+                return;
+            }
 
-        let itemsHtml = items.map(i =>
-            "<tr>" +
-                "<td><a href='"+i.url+"'>" + i.name + "</a></td>" +
+            splitMoneyByChoosenStocks(items);
+
+            let itemsHtml = items.map(i =>
+                "<tr>" +
+                "<td><a href='" + i.url + "'>" + i.name + "</a></td>" +
                 "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" +
-                "<td>"+i.stockPrice+"</td>"+
-                "<td>"+i.yearRate+"</td>"+
-                "<td>-"+i.historicalData.percentTenDaysFall+"%</td>"+
-                "<td>"+(i.countToBuy||"")+"</td>"+
-                "<td><input type='checkbox' id='"+i.id+"'/></td>"+
-                "<td>"+getStockStrategyRate(i,loadingDataStrategies[0])+"</td>"+
-                "<td>"+getStockStrategyRate(i,loadingDataStrategies[1])+"</td>"+
-                "<td>"+getStockStrategyRate(i,loadingDataStrategies[2])+"</td>"+
-                "<td>"+getStockGainPriorityRate(i)+"</td>"+
-                "<td>"+DateHelper.getDate(getStockLastUpdatedTime(i), 1)+"</td>"+
-            "</tr>"
-        );
-        let resultHtml = "<div class='stock-recommedations'><table>" +
+                "<td>" + i.stockPrice + "</td>" +
+                "<td>" + i.yearRate + "</td>" +
+                "<td>-" + i.historicalData.percentTenDaysFall + "%</td>" +
+                "<td>" + (i.countToBuy || "") + "</td>" +
+                "<td><input type='checkbox' id='" + i.id + "'/></td>" +
+                "<td>" + getStockStrategyRate(i, loadingDataStrategies[0]) + "</td>" +
+                "<td>" + getStockStrategyRate(i, loadingDataStrategies[1]) + "</td>" +
+                "<td>" + getStockStrategyRate(i, loadingDataStrategies[2]) + "</td>" +
+                "<td>" + getStockGainPriorityRate(i) + "</td>" +
+                "<td>" + DateHelper.getDate(getStockLastUpdatedTime(i), 1) + "</td>" +
+                "</tr>"
+            );
+            let resultHtml = "<div class='stock-recommedations'><table>" +
 
-            "<tr><td colspan='11'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
-            "<tr><td colspan='11'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
-            "<tr><td colspan='11'>" +
-            "<button id='close-favourite-stocks-report'>Очистить</button>" +
-            "<button id='do-initial-sort'>Исходная сортировка</button>" +
-            "<button id='update-first-ten'>Обновить топ-10</button>" +
-            "</td></tr>"+
+                "<tr><td colspan='11'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" +
+                "<tr><td colspan='11'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" +
+                "<tr><td colspan='11'>" +
+                "<button id='close-favourite-stocks-report'>Очистить</button>" +
+                "<button id='do-initial-sort'>Исходная сортировка</button>" +
+                "<button id='update-first-ten'>Обновить топ-10</button>" +
+                "</td></tr>" +
 
-            "<tr>" +
+                "<tr>" +
                 "<th>Название</th>" +
                 "<th>Тех. рекомендация</th>" +
                 "<th>Цена</th>" +
                 "<th>Годовой рост</th>" +
                 "<th>10дн падение</th>" +
                 "<th>Позиция</th>" +
-            "<th>Участие</th>" +
-            "<th>kYearRisk</th>" +
-            "<th>k10Fall</th>" +
-            "<th>kFinStat</th>" +
-            "<th>kTotal</th>" +
-            "<th>updTime</th>" +
-            "</tr>" +
+                "<th>Участие</th>" +
+                "<th>kYearRisk</th>" +
+                "<th>k10Fall</th>" +
+                "<th>kFinStat</th>" +
+                "<th>kTotal</th>" +
+                "<th>updTime</th>" +
+                "</tr>" +
 
-            itemsHtml.join('')+
+                itemsHtml.join('') +
 
-            "</table></div>";
-        $('body').html(resultHtml);
+                "</table></div>";
+            $('body').html(resultHtml);
 
-        CssStockRecommendations.appendStyle();
-        initializeCheckBoxes(items);
-        initializeButtonsEvents();
+            CssStockRecommendations.appendStyle();
+            initializeCheckBoxes(items);
+            initializeButtonsEvents();
+        }
+        catch (er) {
+            console.error("Couldn't show statistics. Error: ", er);
+        }
     }
 
-    function initializeButtonsEvents(){
+    function initializeButtonsEvents() {
         $('#close-favourite-stocks-report').unbind('click');
-        $('#close-favourite-stocks-report').bind('click', ()=>{
+        $('#close-favourite-stocks-report').bind('click', () => {
             FavouriteStocksAnalyzerStorageHelper.clearPreviousData();
         });
 
 
         $('#do-initial-sort').unbind('click');
-        $('#do-initial-sort').bind('click', ()=>{
+        $('#do-initial-sort').bind('click', () => {
             setInitialDistribution();
         });
 
 
         $('#update-first-ten').unbind('click');
-        $('#update-first-ten').bind('click', ()=>{
+        $('#update-first-ten').bind('click', () => {
             setTopStocksToBeUpdated(10);
         });
     }
 
-    function initializeCheckBoxes(items){
-        items.forEach(i=>{
-            if (i.countToBuy){
-                $('#'+i.id).attr('checked','checked');
+    function initializeCheckBoxes(items) {
+        items.forEach(i => {
+            if (i.countToBuy) {
+                $('#' + i.id).attr('checked', 'checked');
             }
-            $('#'+i.id).unbind('click');
-            $('#'+i.id).bind('click', (el)=>{
+            $('#' + i.id).unbind('click');
+            $('#' + i.id).bind('click', (el) => {
                 let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
                 let id = $(el.currentTarget).attr('id');
-                let stock = items.find(e=> e.id == id);
+                let stock = items.find(e => e.id == id);
                 stock.inPortfolio = $(el.currentTarget).is(':checked');
                 FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(stock);
                 showStatistics();
@@ -285,12 +298,12 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         });
     }
 
-    function setTopStocksToBeUpdated(topStocksCount){
+    function setTopStocksToBeUpdated(topStocksCount) {
         let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
         let topTenStocks = items.slice(0, topStocksCount);
 
-        topTenStocks.forEach(stock =>{
-            loadingDataStrategies.forEach(strategy =>{
+        topTenStocks.forEach(stock => {
+            loadingDataStrategies.forEach(strategy => {
                 dropStockStrategyTime(strategy, stock)
             })
         });
@@ -298,37 +311,37 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         FavouriteStocksAnalyzerStorageHelper.saveData(items);
     }
 
-    function dropStockStrategyTime(strategy, stock){
+    function dropStockStrategyTime(strategy, stock) {
         stock[strategy.name + "TimeUpdated"] = 0;
     }
 
-    function sortStocksByPriority(a, b){ // todo move to extra module
+    function sortStocksByPriority(a, b) { // todo move to extra module
         return getStockGainPriorityRate(a) < getStockGainPriorityRate(b)
             ? 1
             : -1;
     }
 
-    function getStockStrategyRate(stock, strategy){
+    function getStockStrategyRate(stock, strategy) {
         var rate = strategy.getRate(stock);
 
         return DigitsHelper.round2(rate);
     }
 
-    function getStockGainPriorityRate(stock){
-        var rate =  loadingDataStrategies.reduce(function(totalRate, currentStrategy) {
+    function getStockGainPriorityRate(stock) {
+        var rate = loadingDataStrategies.reduce(function (totalRate, currentStrategy) {
             return totalRate * currentStrategy.getRate(stock);
         }, 1);
 
         return DigitsHelper.round2(rate);
     }
 
-    function splitMoneyByChoosenStocks(items){
+    function splitMoneyByChoosenStocks(items) {
         let curVolume = FinamFavouriteStocks.portfolioVolume;
         let positionsCount = items.filter(item => item.inPortfolio).length;
-        let perStock = curVolume/positionsCount;
+        let perStock = curVolume / positionsCount;
 
         let sum = 0;
-        for (let i=0; i<items.length; i++){
+        for (let i = 0; i < items.length; i++) {
             let item = items[i];
 
             if (!item.inPortfolio)
@@ -339,16 +352,16 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         }
 
         let portfolioChanged = true;
-        while(portfolioChanged){
+        while (portfolioChanged) {
             portfolioChanged = false;
 
-            for (let i=0; i<items.length; i++){
+            for (let i = 0; i < items.length; i++) {
                 let item = items[i];
 
                 if (!item.inPortfolio)
                     continue;
 
-                if (item.stockPrice < getAvailabeDollarsAmount(items)){
+                if (item.stockPrice < getAvailabeDollarsAmount(items)) {
                     item.countToBuy++;
                     portfolioChanged = true;
                 }
@@ -356,23 +369,27 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         }
     }
 
-    function getAvailabeDollarsAmount(items){
-        let total = items.reduce(function(sum, item) {
+    function getAvailabeDollarsAmount(items) {
+        let total = items.reduce(function (sum, item) {
             return sum + (item.countToBuy || 0) * (item.stockPrice || 0);
         }, 0);
 
         return FinamFavouriteStocks.portfolioVolume - total;
     }
 
-    function getNotLoadedItem(type, updatedTime){
-        let propName = type+"TimeUpdated";
+    function getNotLoadedItem(type, updatedTime) {
+        let propName = type + "TimeUpdated";
 
         return FavouriteStocksAnalyzerStorageHelper.getStorageData()
-            .find(s=> (s[propName] || 0) == updatedTime);
+            .find(s => (s[propName] || 0) == updatedTime);
     }
 
-    function setInitialData(collectProfitableStock){
-        let dataToCollect = FinamFavouriteStocks.getAll(collectProfitableStock).map(s=> {
+    function setInitialData(collectProfitableStock) {
+        if (FavouriteStocksAnalyzerStorageHelper.getStorageData().length > 0) {
+            return;
+        }
+
+        let dataToCollect = FinamFavouriteStocks.getAll(collectProfitableStock).map(s => {
             s.mainDataCollected = false;
             return s;
         });
