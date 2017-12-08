@@ -422,7 +422,7 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("American Express", "american-express", true);
         add("Juniper", "juniper-networks-inc", false);
         add("Waters", "waters-corp", true);
-        add("Illumina Inc", "illumina,-inc.", true);
+        add("Illumina Inc", "illumina,-inc", true);
         add("BlackRock", "blackrock,-inc.-c", true);
         add("celgene", "celgene-corp", false);
         add("Rockwell Collins", "rockwe-coll", true);

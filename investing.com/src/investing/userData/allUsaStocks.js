@@ -551,7 +551,7 @@ function AllUsaStocks(){
         add('BlackRock', 'blackrock,-inc.-c', 'BLK');
         add('Cabot', 'cabot-microelectr', 'CCMP');
         add('CME Group', 'cme-group-inc.', 'CME');
-        add('Illumina Inc', 'illumina,-inc.', 'ILMN');
+        add('Illumina Inc', 'illumina,-inc', 'ILMN');
         add('JB Hunt', 'j.b.-hunt-transpo', 'JBHT');
         add('Loews', 'loews-corporation', 'L');
         add('Maxim', 'maxim-integrated', 'MXIM');
