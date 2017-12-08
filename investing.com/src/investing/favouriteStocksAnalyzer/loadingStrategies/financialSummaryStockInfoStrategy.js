@@ -48,6 +48,7 @@ function FinancialSummaryStockInfoLoadingStrategy(FavouriteStocksAnalyzerStorage
         };
 
         item.financialSummaryDataCollected = true;
+        item.financialSummaryTimeUpdated = new Date().getTime();
         FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(item);
     }
 
@@ -55,7 +56,9 @@ function FinancialSummaryStockInfoLoadingStrategy(FavouriteStocksAnalyzerStorage
         let range = allStocksStatistics["max"+property]-allStocksStatistics["min"+property];
         let valueInRange = stock.financialSummary[property] - allStocksStatistics["min"+property];
         let rate = valueInRange / range;
-        return rate + 1;
+
+        let strategyWeightRate = 1.5;
+        return rate*strategyWeightRate + 1;
     }
 
     function combineAllStocksStatistics() {

@@ -5,20 +5,38 @@ _investStocks.ctx.register("FinamMainStockInfoLoadingStrategy")
 function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, FavouriteStocksAnalyzerStorageHelper) {
     this.getStrategy = getStrategy;
 
+    let allStocksStatistics = {};
+
     function getStrategy(){
         return {
             name: "main",
             getUrl: url => url,
             loadData: attachMainStockInfo,
             getRate: getRate,
+            combineAllStocksStatistics: combineAllStocksStatistics,
         };
     }
 
     function getRate(stock) {
-        let yearRate = stock.yearRate;
-        let riskRate = 0.0125*yearRate + 0.5;
+        let rate = (stock.yearRate - allStocksStatistics.minYearRate)/allStocksStatistics.rangeYearRate;
+        return rate + 1;
+    }
 
-        return yearRate*riskRate;
+    function combineAllStocksStatistics() {
+        let stocks = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+
+        allStocksStatistics = {
+            minYearRate: getMinMaxValue(stocks, "min","yearRate"),
+            maxYearRate: getMinMaxValue(stocks, "max","yearRate"),
+        };
+        allStocksStatistics.rangeYearRate = allStocksStatistics.maxYearRate - allStocksStatistics.minYearRate;
+    }
+
+    function getMinMaxValue(stocks, minOrMax, property){
+        let values = stocks.map(stock => stock[property]);
+        return minOrMax == "min"
+            ? Math.min(...values)
+            : Math.max(...values);
     }
 
     function attachMainStockInfo(item){
@@ -27,6 +45,7 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         item.yearRate = getYearRate();
 
         item.mainDataCollected = true;
+        item.mainTimeUpdated = new Date().getTime();
         FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(item);
     }
 

@@ -5,17 +5,38 @@ _investStocks.ctx.register("FinamHistoricalStockInfoLoadingStrategy")
 function FinamHistoricalStockInfoLoadingStrategy(FinamStockRecommendationTypes, FavouriteStocksAnalyzerStorageHelper) {
     this.getStrategy = getStrategy;
 
+    let allStocksStatistics = {};
+
     function getStrategy(){
         return  {
             name: "historical",
             getUrl: url => url + "-historical-data",
             loadData: attachHistoricalStockInfo,
             getRate: getRate,
+            combineAllStocksStatistics: combineAllStocksStatistics,
         };
     }
 
     function getRate(stock) {
-        return stock.historicalData.percentTenDaysFall + 1;
+        let rate = (stock.historicalData.percentTenDaysFall - allStocksStatistics.minPercentTenDaysFall)/allStocksStatistics.rangePercentTenDaysFall;
+        return rate + 1;
+    }
+
+    function combineAllStocksStatistics() {
+        let stocks = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+
+        allStocksStatistics = {
+            minPercentTenDaysFall: getMinMaxValue(stocks, "min","percentTenDaysFall"),
+            maxPercentTenDaysFall: getMinMaxValue(stocks, "max","percentTenDaysFall"),
+        };
+        allStocksStatistics.rangePercentTenDaysFall = allStocksStatistics.maxPercentTenDaysFall - allStocksStatistics.minPercentTenDaysFall;
+    }
+
+    function getMinMaxValue(stocks, minOrMax, property){
+        let values = stocks.map(stock => stock.historicalData[property]);
+        return minOrMax == "min"
+            ? Math.min(...values)
+            : Math.max(...values);
     }
 
     function attachHistoricalStockInfo(item){
@@ -43,6 +64,7 @@ function FinamHistoricalStockInfoLoadingStrategy(FinamStockRecommendationTypes, 
             : 0;
 
         item.historicalDataCollected = true;
+        item.historicalTimeUpdated = new Date().getTime();
         FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(item);
     }
 }

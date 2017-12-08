@@ -87,15 +87,14 @@ function registerInfrastructure() {
     __webpack_require__(10);
     __webpack_require__(11);
     __webpack_require__(12);
-
     __webpack_require__(13);
     __webpack_require__(14);
     __webpack_require__(15);
     __webpack_require__(16);
     __webpack_require__(17);
-
     __webpack_require__(18);
     __webpack_require__(19);
+
     __webpack_require__(20);
     __webpack_require__(21);
     __webpack_require__(22);
@@ -104,6 +103,8 @@ function registerInfrastructure() {
     __webpack_require__(25);
     __webpack_require__(26);
     __webpack_require__(27);
+    __webpack_require__(28);
+    __webpack_require__(29);
 
     _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
     _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
@@ -1570,6 +1571,60 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
 "use strict";
 
 
+_investStocks.ctx.register("DateHelper").asCtor(DateHelper);
+
+function DateHelper() {
+    this.getDate = getDate;
+
+    var ruLocale = "ru-Ru";
+
+    function getDate(value, convertionType) {
+        switch (convertionType) {
+            case 1:
+                var date = new Date(value);
+                return date.toLocaleDateString(ruLocale) + ' ' + date.getHours() + ":" + date.getMinutes();
+        }
+    }
+}
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("jsHelper").asCtor(jsHelper);
+
+function jsHelper() {
+    this.openInNewWindow = openInNewWindow;
+
+    function openInNewWindow(METHOD, URL, params) {
+        var my_form = document.createElement('FORM');
+        my_form.name = 'myForm';
+        my_form.method = METHOD;
+        my_form.action = URL;
+        my_form.target = "_blank";
+        if (params == undefined) params = [];
+        for (var i = 0; i < params.length; i++) {
+            var my_tb = document.createElement('INPUT');
+            my_tb.type = 'HIDDEN';
+            my_tb.name = params[i].Value;
+            my_tb.value = params[i].Text;
+            my_form.appendChild(my_tb);
+        }
+        document.body.appendChild(my_form);
+        my_form.submit();
+    };
+}
+
+/***/ }),
+/* 15 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 _investStocks.ctx.register("FavouriteStocksAnalyzerStorageHelper").asCtor(FavouriteStocksAnalyzerStorageHelper).dependencies("InvestingConsts");
 
 function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
@@ -1579,9 +1634,16 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
     this.clearPreviousData = clearPreviousData;
     this.setNextUrl = setNextUrl;
     this.getNextUrl = getNextUrl;
+    this.getPageRefreshCount = getPageRefreshCount;
+    this.increasePageRefreshCount = increasePageRefreshCount;
+    this.clearNextUrl = clearNextUrl;
+    this.getLastSentTopStocks = getLastSentTopStocks;
+    this.setLastSentTopStocks = setLastSentTopStocks;
 
     var storageKey = InvestingConsts.favouriteStocksStatisticsLocalStorageKey;
-    var storageKeyNextUrlToFetchData = "";
+    var storageKeyNextUrlToFetchData = "favouriteStocksNextUrl";
+    var storageKeyPageRefreshCount = "favouriteStocksPageRefreshCount";
+    var storageKeyTopStocksLastUpdate = "favouriteStocks_top_10_latest";
 
     function saveItemInStorage(itemToSave) {
         var items = getStorageData();
@@ -1593,6 +1655,28 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
         });
 
         saveData(items);
+    }
+
+    function getPageRefreshCount() {
+        var storageValue = localStorage.getItem(storageKeyPageRefreshCount) || 0;
+
+        return parseInt(storageValue);
+    }
+
+    function getLastSentTopStocks() {
+        var storageValue = localStorage.getItem(storageKeyTopStocksLastUpdate) || "";
+
+        return storageValue;
+    }
+
+    function setLastSentTopStocks(value) {
+        localStorage.setItem(storageKeyTopStocksLastUpdate, value);
+    }
+
+    function increasePageRefreshCount() {
+        var nextVal = 1 + getPageRefreshCount();
+
+        localStorage.setItem(storageKeyPageRefreshCount, nextVal);
     }
 
     function setNextUrl(url) {
@@ -1621,16 +1705,20 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
 }
 
 /***/ }),
-/* 14 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 _investStocks.ctx.register("FinamMainStockInfoLoadingStrategy").asCtor(FinamMainStockInfoLoadingStrategy).dependencies("FinamStockRecommendationTypes, FavouriteStocksAnalyzerStorageHelper");
 
 function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, FavouriteStocksAnalyzerStorageHelper) {
     this.getStrategy = getStrategy;
+
+    var allStocksStatistics = {};
 
     function getStrategy() {
         return {
@@ -1639,15 +1727,31 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
                 return url;
             },
             loadData: attachMainStockInfo,
-            getRate: getRate
+            getRate: getRate,
+            combineAllStocksStatistics: combineAllStocksStatistics
         };
     }
 
     function getRate(stock) {
-        var yearRate = stock.yearRate;
-        var riskRate = 0.0125 * yearRate + 0.5;
+        var rate = (stock.yearRate - allStocksStatistics.minYearRate) / allStocksStatistics.rangeYearRate;
+        return rate + 1;
+    }
 
-        return yearRate * riskRate;
+    function combineAllStocksStatistics() {
+        var stocks = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+
+        allStocksStatistics = {
+            minYearRate: getMinMaxValue(stocks, "min", "yearRate"),
+            maxYearRate: getMinMaxValue(stocks, "max", "yearRate")
+        };
+        allStocksStatistics.rangeYearRate = allStocksStatistics.maxYearRate - allStocksStatistics.minYearRate;
+    }
+
+    function getMinMaxValue(stocks, minOrMax, property) {
+        var values = stocks.map(function (stock) {
+            return stock[property];
+        });
+        return minOrMax == "min" ? Math.min.apply(Math, _toConsumableArray(values)) : Math.max.apply(Math, _toConsumableArray(values));
     }
 
     function attachMainStockInfo(item) {
@@ -1656,6 +1760,7 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         item.yearRate = getYearRate();
 
         item.mainDataCollected = true;
+        item.mainTimeUpdated = new Date().getTime();
         FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(item);
     }
 
@@ -1681,16 +1786,20 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
 }
 
 /***/ }),
-/* 15 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 _investStocks.ctx.register("FinamHistoricalStockInfoLoadingStrategy").asCtor(FinamHistoricalStockInfoLoadingStrategy).dependencies("FinamStockRecommendationTypes, FavouriteStocksAnalyzerStorageHelper");
 
 function FinamHistoricalStockInfoLoadingStrategy(FinamStockRecommendationTypes, FavouriteStocksAnalyzerStorageHelper) {
     this.getStrategy = getStrategy;
+
+    var allStocksStatistics = {};
 
     function getStrategy() {
         return {
@@ -1699,12 +1808,31 @@ function FinamHistoricalStockInfoLoadingStrategy(FinamStockRecommendationTypes, 
                 return url + "-historical-data";
             },
             loadData: attachHistoricalStockInfo,
-            getRate: getRate
+            getRate: getRate,
+            combineAllStocksStatistics: combineAllStocksStatistics
         };
     }
 
     function getRate(stock) {
-        return stock.historicalData.percentTenDaysFall + 1;
+        var rate = (stock.historicalData.percentTenDaysFall - allStocksStatistics.minPercentTenDaysFall) / allStocksStatistics.rangePercentTenDaysFall;
+        return rate + 1;
+    }
+
+    function combineAllStocksStatistics() {
+        var stocks = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+
+        allStocksStatistics = {
+            minPercentTenDaysFall: getMinMaxValue(stocks, "min", "percentTenDaysFall"),
+            maxPercentTenDaysFall: getMinMaxValue(stocks, "max", "percentTenDaysFall")
+        };
+        allStocksStatistics.rangePercentTenDaysFall = allStocksStatistics.maxPercentTenDaysFall - allStocksStatistics.minPercentTenDaysFall;
+    }
+
+    function getMinMaxValue(stocks, minOrMax, property) {
+        var values = stocks.map(function (stock) {
+            return stock.historicalData[property];
+        });
+        return minOrMax == "min" ? Math.min.apply(Math, _toConsumableArray(values)) : Math.max.apply(Math, _toConsumableArray(values));
     }
 
     function attachHistoricalStockInfo(item) {
@@ -1728,12 +1856,13 @@ function FinamHistoricalStockInfoLoadingStrategy(FinamStockRecommendationTypes, 
         item.historicalData.percentTenDaysFall = item.historicalData.maxLastTenDaysPrice > item.stockPrice ? Math.round((item.historicalData.maxLastTenDaysPrice - item.stockPrice) / item.stockPrice * 100 * 100) / 100 : 0;
 
         item.historicalDataCollected = true;
+        item.historicalTimeUpdated = new Date().getTime();
         FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(item);
     }
 }
 
 /***/ }),
-/* 16 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1790,6 +1919,7 @@ function FinancialSummaryStockInfoLoadingStrategy(FavouriteStocksAnalyzerStorage
         };
 
         item.financialSummaryDataCollected = true;
+        item.financialSummaryTimeUpdated = new Date().getTime();
         FavouriteStocksAnalyzerStorageHelper.saveItemInStorage(item);
     }
 
@@ -1797,7 +1927,9 @@ function FinancialSummaryStockInfoLoadingStrategy(FavouriteStocksAnalyzerStorage
         var range = allStocksStatistics["max" + property] - allStocksStatistics["min" + property];
         var valueInRange = stock.financialSummary[property] - allStocksStatistics["min" + property];
         var rate = valueInRange / range;
-        return rate + 1;
+
+        var strategyWeightRate = 1.5;
+        return rate * strategyWeightRate + 1;
     }
 
     function combineAllStocksStatistics() {
@@ -1860,15 +1992,17 @@ function FinancialSummaryStockInfoLoadingStrategy(FavouriteStocksAnalyzerStorage
 }
 
 /***/ }),
-/* 17 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-_investStocks.ctx.register("FavouriteStocksAnalyzer").asCtor(FavouriteStocksAnalyzer).dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," + "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper," + "FinancialSummaryStockInfoLoadingStrategy, DigitsHelper");
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations, FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper, FinancialSummaryStockInfoLoadingStrategy, DigitsHelper) {
+_investStocks.ctx.register("FavouriteStocksAnalyzer").asCtor(FavouriteStocksAnalyzer).dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," + "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper," + "FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper");
+
+function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations, FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper, FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper) {
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
@@ -1877,12 +2011,17 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     var loadingDataStrategies = [FinamMainStockInfoLoadingStrategy.getStrategy(), FinamHistoricalStockInfoLoadingStrategy.getStrategy(), FinancialSummaryStockInfoLoadingStrategy.getStrategy()];
 
     function run(collectProfitableStock) {
-        FavouriteStocksAnalyzerStorageHelper.clearPreviousData();
-        setInitialData(collectProfitableStock);
+        // todo - dont use this param
+        // FavouriteStocksAnalyzerStorageHelper.clearPreviousData(); todo update list
+        //setInitialData(collectProfitableStock);
+        FavouriteStocksAnalyzerStorageHelper.clearNextUrl();
         loadData();
     }
 
     function getNextStrategy() {
+        var stockWithMinUpdatedStrategyTime = new Date().getTime();
+        var nextStrategy = void 0;
+
         var _iteratorNormalCompletion = true;
         var _didIteratorError = false;
         var _iteratorError = undefined;
@@ -1891,7 +2030,12 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             for (var _iterator = loadingDataStrategies[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
                 var strategy = _step.value;
 
-                if (hasNotLoadedItems(strategy.name)) return strategy;
+                var time = getMinStockUpdatedTime(strategy);
+
+                if (time < stockWithMinUpdatedStrategyTime) {
+                    stockWithMinUpdatedStrategyTime = time;
+                    nextStrategy = strategy;
+                }
             }
         } catch (err) {
             _didIteratorError = true;
@@ -1907,16 +2051,61 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                 }
             }
         }
+
+        return { strategy: nextStrategy, time: stockWithMinUpdatedStrategyTime };
+    }
+
+    function getStockLastUpdatedTime(stock) {
+        var times = loadingDataStrategies.map(function (strategy) {
+            return getStockStrategyTime(strategy, stock);
+        });
+
+        return Math.min.apply(Math, _toConsumableArray(times));
+    }
+
+    function getStockStrategyTime(strategy, stock) {
+        return stock[strategy.name + "TimeUpdated"] || 0;
+    }
+
+    function getMinStockUpdatedTime(strategy) {
+        var items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+        var updatedTimes = items.map(function (e) {
+            return e[strategy.name + "TimeUpdated"] || 0;
+        });
+
+        return Math.min.apply(Math, _toConsumableArray(updatedTimes));
     }
 
     function loadData() {
-        var strategy = getNextStrategy();
+
+        if (location.href.includes('getStatistics')) {
+            showStatistics();
+            return;
+        }
+
+        setupTopStocksToBeUpdated(10, 50);
+        var wasUpdateSent = sendUpdatesIfTopStocksChanged(4);
+
+        debugger;
+        if (!wasUpdateSent) {
+            doStrategy();
+        } else {
+            // need to wait while another tab will be opened
+            setTimeout(doStrategy, 3000);
+        }
+    }
+
+    function doStrategy() {
+        var strategyAndTime = getNextStrategy();
+        var strategy = strategyAndTime.strategy;
+        var time = strategyAndTime.time;
+
         if (!strategy) {
             showStatistics();
             return;
         }
 
-        var itemToLoad = getNotLoadedItem(strategy.name);
+        var itemToLoad = getNotLoadedItem(strategy.name, time);
 
         if (location.href != strategy.getUrl(itemToLoad.url)) {
             var nextUrlToContinue = FavouriteStocksAnalyzerStorageHelper.getNextUrl();
@@ -1931,15 +2120,66 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         } else {
             strategy.loadData(itemToLoad);
 
-            var nextStrategy = getNextStrategy();
+            strategyAndTime = getNextStrategy();
+            strategy = strategyAndTime.strategy;
+            time = strategyAndTime.time;
 
-            if (nextStrategy) {
-                itemToLoad = getNotLoadedItem(nextStrategy.name);
-                location.href = nextStrategy.getUrl(itemToLoad.url);
+            if (strategy) {
+                itemToLoad = getNotLoadedItem(strategy.name, time);
+                location.href = strategy.getUrl(itemToLoad.url);
             } else {
                 setInitialDistribution();
                 showStatistics();
             }
+        }
+    }
+
+    function sendUpdatesIfTopStocksChanged(topStocksCount) {
+        setInitialDistribution();
+
+        var stocks = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+        var topStocks = stocks.slice(0, topStocksCount);
+
+        var topStocksHash = topStocks.map(function (s) {
+            return s.name;
+        }).join();
+
+        if (FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocks() == topStocksHash) {
+            return false;
+        }
+
+        FavouriteStocksAnalyzerStorageHelper.setLastSentTopStocks(topStocksHash);
+
+        var stocksDto = topStocks.map(function (s) {
+            return {
+                name: s.name,
+                url: s.url,
+                maxPrice: s.historicalData.maxLastTenDaysPrice,
+                percentTenDaysFall: s.historicalData.percentTenDaysFall,
+                price: s.stockPrice,
+                yearRate: s.yearRate
+            };
+        });
+        var stocksDtoJson = JSON.stringify(stocksDto);
+
+        sendToVkontakte(stocksDtoJson);
+
+        return true;
+    }
+
+    function sendToVkontakte(stocksDtoJson) {
+        jsHelper.openInNewWindow("GET", "https://vk.com/club157318779", [
+        // {Value: "p", Text: "@usa_stocks"},
+        { Value: "stocks", Text: stocksDtoJson }]);
+    }
+
+    function setupTopStocksToBeUpdated(topStocksCount, limitBeforeUpdatingTopStocks) {
+        // for example each time when we updated already x=50 stocks - update 10 top stocks and continue updating others
+        FavouriteStocksAnalyzerStorageHelper.increasePageRefreshCount();
+        var refreshCount = FavouriteStocksAnalyzerStorageHelper.getPageRefreshCount();
+        if (refreshCount % (loadingDataStrategies.length * (topStocksCount + limitBeforeUpdatingTopStocks)) == 0) {
+            setTopStocksToBeUpdated(topStocksCount);
+            FavouriteStocksAnalyzerStorageHelper.clearNextUrl();
         }
     }
 
@@ -1977,9 +2217,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         splitMoneyByChoosenStocks(items);
 
         var itemsHtml = items.map(function (i) {
-            return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>-" + i.historicalData.percentTenDaysFall + "%</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[0]) + "</td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[1]) + "</td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[2]) + "</td>" + "<td>" + getStockGainPriorityRate(i) + "</td>" + "</tr>";
+            return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>-" + i.historicalData.percentTenDaysFall + "%</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[0]) + "</td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[1]) + "</td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[2]) + "</td>" + "<td>" + getStockGainPriorityRate(i) + "</td>" + "<td>" + DateHelper.getDate(getStockLastUpdatedTime(i), 1) + "</td>" + "</tr>";
         });
-        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "<th>kYearRisk</th>" + "<th>k10Fall</th>" + "<th>kFinStat</th>" + "<th>kTotal</th>" + "</tr>" + itemsHtml.join('') + "<tr><td colspan='11'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='11'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "<tr><td colspan='11'>" + "<button id='close-favourite-stocks-report'>Очистить</button>" + "<button id='do-initial-sort'>Исходная сортировка</button>" + "</td></tr>" + "</table></div>";
+        var resultHtml = "<div class='stock-recommedations'><table>" + "<tr><td colspan='11'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='11'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "<tr><td colspan='11'>" + "<button id='close-favourite-stocks-report'>Очистить</button>" + "<button id='do-initial-sort'>Исходная сортировка</button>" + "<button id='update-first-ten'>Обновить топ-10</button>" + "</td></tr>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "<th>kYearRisk</th>" + "<th>k10Fall</th>" + "<th>kFinStat</th>" + "<th>kTotal</th>" + "<th>updTime</th>" + "</tr>" + itemsHtml.join('') + "</table></div>";
         $('body').html(resultHtml);
 
         CssStockRecommendations.appendStyle();
@@ -1996,6 +2236,11 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         $('#do-initial-sort').unbind('click');
         $('#do-initial-sort').bind('click', function () {
             setInitialDistribution();
+        });
+
+        $('#update-first-ten').unbind('click');
+        $('#update-first-ten').bind('click', function () {
+            setTopStocksToBeUpdated(10);
         });
     }
 
@@ -2018,13 +2263,29 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         });
     }
 
+    function setTopStocksToBeUpdated(topStocksCount) {
+        var items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+        var topTenStocks = items.slice(0, topStocksCount);
+
+        topTenStocks.forEach(function (stock) {
+            loadingDataStrategies.forEach(function (strategy) {
+                dropStockStrategyTime(strategy, stock);
+            });
+        });
+
+        FavouriteStocksAnalyzerStorageHelper.saveData(items);
+    }
+
+    function dropStockStrategyTime(strategy, stock) {
+        stock[strategy.name + "TimeUpdated"] = 0;
+    }
+
     function sortStocksByPriority(a, b) {
         // todo move to extra module
         return getStockGainPriorityRate(a) < getStockGainPriorityRate(b) ? 1 : -1;
     }
 
     function getStockStrategyRate(stock, strategy) {
-        debugger;
         var rate = strategy.getRate(stock);
 
         return DigitsHelper.round2(rate);
@@ -2080,14 +2341,11 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         return FinamFavouriteStocks.portfolioVolume - total;
     }
 
-    function hasNotLoadedItems(type) {
-        return getNotLoadedItem(type) != null;
-    }
+    function getNotLoadedItem(type, updatedTime) {
+        var propName = type + "TimeUpdated";
 
-    function getNotLoadedItem(type) {
-        var propName = type + "DataCollected";
         return FavouriteStocksAnalyzerStorageHelper.getStorageData().find(function (s) {
-            return !s[propName];
+            return (s[propName] || 0) == updatedTime;
         });
     }
 
@@ -2102,7 +2360,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 }
 
 /***/ }),
-/* 18 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2144,7 +2402,7 @@ function FinamStockRecommendationTypes() {
 }
 
 /***/ }),
-/* 19 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2168,7 +2426,7 @@ function CssStockRecommendations() {
 }
 
 /***/ }),
-/* 20 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2185,7 +2443,7 @@ function InvestingAvailablefunctions() {
 }
 
 /***/ }),
-/* 21 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2269,7 +2527,7 @@ function GetSpbStockList() {
 }
 
 /***/ }),
-/* 22 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2843,7 +3101,7 @@ function SpbStockList() {
 }
 
 /***/ }),
-/* 23 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2927,7 +3185,7 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
 }
 
 /***/ }),
-/* 24 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2958,7 +3216,7 @@ function LocalStorageHelper() {
 }
 
 /***/ }),
-/* 25 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3994,7 +4252,7 @@ function AllUsaStocks() {
 }
 
 /***/ }),
-/* 26 */
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4044,7 +4302,7 @@ function FavouriteStocksFiltering(FinamFavouriteStocks, FavouriteStocksAnalyzer,
 }
 
 /***/ }),
-/* 27 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";

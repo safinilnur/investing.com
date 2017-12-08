@@ -2,11 +2,11 @@ _investStocks.ctx.register("FavouriteStocksAnalyzer")
     .asCtor(FavouriteStocksAnalyzer)
     .dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," +
         "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper," +
-        "FinancialSummaryStockInfoLoadingStrategy, DigitsHelper");
+        "FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper");
 
 function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations,
                                  FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper,
-                                 FinancialSummaryStockInfoLoadingStrategy, DigitsHelper){
+                                 FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper){
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
@@ -18,27 +18,76 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         FinancialSummaryStockInfoLoadingStrategy.getStrategy(),
     ];
 
-    function run(collectProfitableStock){
-        FavouriteStocksAnalyzerStorageHelper.clearPreviousData();
-        setInitialData(collectProfitableStock);
+    function run(collectProfitableStock){ // todo - dont use this param
+        // FavouriteStocksAnalyzerStorageHelper.clearPreviousData(); todo update list
+        //setInitialData(collectProfitableStock);
+        FavouriteStocksAnalyzerStorageHelper.clearNextUrl();
         loadData();
     }
 
     function getNextStrategy(){
+        let stockWithMinUpdatedStrategyTime = new Date().getTime();
+        let nextStrategy;
+
         for (let strategy of loadingDataStrategies) {
-            if (hasNotLoadedItems(strategy.name))
-                return strategy;
+            let time = getMinStockUpdatedTime(strategy);
+
+            if(time < stockWithMinUpdatedStrategyTime){
+                stockWithMinUpdatedStrategyTime = time;
+                nextStrategy = strategy;
+            }
         }
+
+        return {strategy: nextStrategy, time: stockWithMinUpdatedStrategyTime};
+    }
+
+    function getStockLastUpdatedTime(stock){
+        let times = loadingDataStrategies.map(strategy => getStockStrategyTime(strategy, stock));
+
+        return Math.min(...times);
+    }
+
+    function getStockStrategyTime(strategy, stock){
+        return stock[strategy.name + "TimeUpdated"] || 0;
+    }
+
+    function getMinStockUpdatedTime(strategy){
+        let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+        let updatedTimes = items.map(e=> e[strategy.name + "TimeUpdated"] || 0);
+
+        return Math.min(...updatedTimes);
     }
 
     function loadData() {
-        let strategy = getNextStrategy();
+
+        if (location.href.includes('getStatistics')){
+            showStatistics();
+            return;
+        }
+
+        setupTopStocksToBeUpdated(10, 50);
+        let wasUpdateSent = sendUpdatesIfTopStocksChanged(4);
+
+        debugger;
+        if (!wasUpdateSent){
+            doStrategy();
+        }else{
+            // need to wait while another tab will be opened
+            setTimeout(doStrategy, 3000);
+        }
+    }
+
+    function doStrategy(){
+        let strategyAndTime = getNextStrategy();
+        let strategy = strategyAndTime.strategy;
+        let time = strategyAndTime.time;
+
         if (!strategy) {
             showStatistics();
             return;
         }
 
-        let itemToLoad = getNotLoadedItem(strategy.name);
+        let itemToLoad = getNotLoadedItem(strategy.name, time);
 
 
         if (location.href != strategy.getUrl(itemToLoad.url)) {
@@ -54,15 +103,64 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         } else {
             strategy.loadData(itemToLoad);
 
-            let nextStrategy = getNextStrategy();
+            strategyAndTime = getNextStrategy();
+            strategy = strategyAndTime.strategy;
+            time = strategyAndTime.time;
 
-            if (nextStrategy) {
-                itemToLoad = getNotLoadedItem(nextStrategy.name);
-                location.href = nextStrategy.getUrl(itemToLoad.url);
+            if (strategy) {
+                itemToLoad = getNotLoadedItem(strategy.name, time);
+                location.href = strategy.getUrl(itemToLoad.url);
             } else {
                 setInitialDistribution();
                 showStatistics();
             }
+        }
+    }
+
+    function sendUpdatesIfTopStocksChanged(topStocksCount){
+        setInitialDistribution();
+
+        let stocks =FavouriteStocksAnalyzerStorageHelper.getStorageData();
+        let topStocks = stocks.slice(0, topStocksCount);
+
+        let topStocksHash = topStocks.map(s=> s.name).join();
+
+        if (FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocks() == topStocksHash){
+            return false;
+        }
+
+        FavouriteStocksAnalyzerStorageHelper.setLastSentTopStocks(topStocksHash);
+
+        let stocksDto = topStocks.map(s => ({
+            name: s.name,
+            url: s.url,
+            maxPrice: s.historicalData.maxLastTenDaysPrice,
+            percentTenDaysFall:s.historicalData.percentTenDaysFall,
+            price: s.stockPrice,
+            yearRate: s.yearRate,
+        }));
+        let stocksDtoJson = JSON.stringify(stocksDto);
+
+        sendToVkontakte(stocksDtoJson);
+
+        return true;
+    }
+
+    function sendToVkontakte(stocksDtoJson) {
+        jsHelper.openInNewWindow("GET", "https://vk.com/club157318779",
+            [
+               // {Value: "p", Text: "@usa_stocks"},
+                {Value: "stocks", Text: stocksDtoJson}
+            ]);
+    }
+
+    function setupTopStocksToBeUpdated(topStocksCount, limitBeforeUpdatingTopStocks){
+        // for example each time when we updated already x=50 stocks - update 10 top stocks and continue updating others
+        FavouriteStocksAnalyzerStorageHelper.increasePageRefreshCount();
+        let refreshCount = FavouriteStocksAnalyzerStorageHelper.getPageRefreshCount();
+        if (refreshCount % ((loadingDataStrategies.length)*(topStocksCount + limitBeforeUpdatingTopStocks)) == 0){
+            setTopStocksToBeUpdated(topStocksCount);
+            FavouriteStocksAnalyzerStorageHelper.clearNextUrl();
         }
     }
 
@@ -113,9 +211,19 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                 "<td>"+getStockStrategyRate(i,loadingDataStrategies[1])+"</td>"+
                 "<td>"+getStockStrategyRate(i,loadingDataStrategies[2])+"</td>"+
                 "<td>"+getStockGainPriorityRate(i)+"</td>"+
+                "<td>"+DateHelper.getDate(getStockLastUpdatedTime(i), 1)+"</td>"+
             "</tr>"
         );
         let resultHtml = "<div class='stock-recommedations'><table>" +
+
+            "<tr><td colspan='11'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
+            "<tr><td colspan='11'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
+            "<tr><td colspan='11'>" +
+            "<button id='close-favourite-stocks-report'>Очистить</button>" +
+            "<button id='do-initial-sort'>Исходная сортировка</button>" +
+            "<button id='update-first-ten'>Обновить топ-10</button>" +
+            "</td></tr>"+
+
             "<tr>" +
                 "<th>Название</th>" +
                 "<th>Тех. рекомендация</th>" +
@@ -128,16 +236,11 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             "<th>k10Fall</th>" +
             "<th>kFinStat</th>" +
             "<th>kTotal</th>" +
+            "<th>updTime</th>" +
             "</tr>" +
 
             itemsHtml.join('')+
 
-            "<tr><td colspan='11'>Расчет по портфелю: "+FinamFavouriteStocks.portfolioVolume+"$</td></td></tr>"+
-            "<tr><td colspan='11'>Остаток средств: "+parseInt(getAvailabeDollarsAmount(items))+"$</td></td></tr>"+
-            "<tr><td colspan='11'>" +
-                "<button id='close-favourite-stocks-report'>Очистить</button>" +
-            "<button id='do-initial-sort'>Исходная сортировка</button>" +
-            "</td></tr>"+
             "</table></div>";
         $('body').html(resultHtml);
 
@@ -156,7 +259,13 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         $('#do-initial-sort').unbind('click');
         $('#do-initial-sort').bind('click', ()=>{
             setInitialDistribution();
-        })
+        });
+
+
+        $('#update-first-ten').unbind('click');
+        $('#update-first-ten').bind('click', ()=>{
+            setTopStocksToBeUpdated(10);
+        });
     }
 
     function initializeCheckBoxes(items){
@@ -176,6 +285,23 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         });
     }
 
+    function setTopStocksToBeUpdated(topStocksCount){
+        let items = FavouriteStocksAnalyzerStorageHelper.getStorageData();
+        let topTenStocks = items.slice(0, topStocksCount);
+
+        topTenStocks.forEach(stock =>{
+            loadingDataStrategies.forEach(strategy =>{
+                dropStockStrategyTime(strategy, stock)
+            })
+        });
+
+        FavouriteStocksAnalyzerStorageHelper.saveData(items);
+    }
+
+    function dropStockStrategyTime(strategy, stock){
+        stock[strategy.name + "TimeUpdated"] = 0;
+    }
+
     function sortStocksByPriority(a, b){ // todo move to extra module
         return getStockGainPriorityRate(a) < getStockGainPriorityRate(b)
             ? 1
@@ -183,7 +309,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function getStockStrategyRate(stock, strategy){
-        debugger;
         var rate = strategy.getRate(stock);
 
         return DigitsHelper.round2(rate);
@@ -238,14 +363,12 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
         return FinamFavouriteStocks.portfolioVolume - total;
     }
-    
-    function hasNotLoadedItems(type){
-        return getNotLoadedItem(type) != null;
-    }
 
-    function getNotLoadedItem(type){
-        let propName = type+"DataCollected";
-        return FavouriteStocksAnalyzerStorageHelper.getStorageData().find(s=> !s[propName]);
+    function getNotLoadedItem(type, updatedTime){
+        let propName = type+"TimeUpdated";
+
+        return FavouriteStocksAnalyzerStorageHelper.getStorageData()
+            .find(s=> (s[propName] || 0) == updatedTime);
     }
 
     function setInitialData(collectProfitableStock){
