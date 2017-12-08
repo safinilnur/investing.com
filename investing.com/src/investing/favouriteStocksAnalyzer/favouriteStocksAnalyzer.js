@@ -87,18 +87,18 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         }
 
         let itemToLoad = getNotLoadedItem(strategy.name, time);
+        let nextUrlToLoad = strategy.getUrl(itemToLoad.url);
 
+        if (location.href !== nextUrlToLoad) {
+            let savedNextUrlToContinue = FavouriteStocksAnalyzerStorageHelper.getNextUrl();
 
-        if (location.href != strategy.getUrl(itemToLoad.url)) {
-            let nextUrlToContinue = FavouriteStocksAnalyzerStorageHelper.getNextUrl();
-
-            if (nextUrlToContinue && location.href != nextUrlToContinue) {
+            if (savedNextUrlToContinue && location.href !== savedNextUrlToContinue) {
                 console.log('to load statistics - continue from page ' + FavouriteStocksAnalyzerStorageHelper.getNextUrl());
                 return;
             }
 
-            FavouriteStocksAnalyzerStorageHelper.setNextUrl(itemToLoad.url);
-            location.href = strategy.getUrl(itemToLoad.url);
+            FavouriteStocksAnalyzerStorageHelper.setNextUrl(nextUrlToLoad);
+            location.href = nextUrlToLoad;
         } else {
             strategy.loadData(itemToLoad);
 
@@ -380,8 +380,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     function getNotLoadedItem(type, updatedTime) {
         let propName = type + "TimeUpdated";
 
-        return FavouriteStocksAnalyzerStorageHelper.getStorageData()
-            .find(s => (s[propName] || 0) == updatedTime);
+        return FavouriteStocksAnalyzerStorageHelper.getStorageData().sort((a,b) => {if (a.name > b.name) return 1; else return -1;}).find(function (s) {
+            return (s[propName] || 0) === updatedTime;
+        });
     }
 
     function setInitialData(collectProfitableStock) {

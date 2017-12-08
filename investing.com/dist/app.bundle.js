@@ -1487,7 +1487,7 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("American Express", "american-express", true);
         add("Juniper", "juniper-networks-inc", false);
         add("Waters", "waters-corp", true);
-        add("Illumina Inc", "illumina,-inc.", true);
+        add("Illumina Inc", "illumina,-inc", true);
         add("BlackRock", "blackrock,-inc.-c", true);
         add("celgene", "celgene-corp", false);
         add("Rockwell Collins", "rockwe-coll", true);
@@ -2012,7 +2012,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 
     function run(collectProfitableStock) {
         // todo - dont use this param
-        debugger;
         setInitialData(collectProfitableStock);
         FavouriteStocksAnalyzerStorageHelper.clearNextUrl();
         loadData();
@@ -2106,17 +2105,18 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
         }
 
         var itemToLoad = getNotLoadedItem(strategy.name, time);
+        var nextUrlToLoad = strategy.getUrl(itemToLoad.url);
 
-        if (location.href != strategy.getUrl(itemToLoad.url)) {
-            var nextUrlToContinue = FavouriteStocksAnalyzerStorageHelper.getNextUrl();
+        if (location.href !== nextUrlToLoad) {
+            var savedNextUrlToContinue = FavouriteStocksAnalyzerStorageHelper.getNextUrl();
 
-            if (nextUrlToContinue && location.href != nextUrlToContinue) {
+            if (savedNextUrlToContinue && location.href !== savedNextUrlToContinue) {
                 console.log('to load statistics - continue from page ' + FavouriteStocksAnalyzerStorageHelper.getNextUrl());
                 return;
             }
 
-            FavouriteStocksAnalyzerStorageHelper.setNextUrl(itemToLoad.url);
-            location.href = strategy.getUrl(itemToLoad.url);
+            FavouriteStocksAnalyzerStorageHelper.setNextUrl(nextUrlToLoad);
+            location.href = nextUrlToLoad;
         } else {
             strategy.loadData(itemToLoad);
 
@@ -2356,8 +2356,10 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     function getNotLoadedItem(type, updatedTime) {
         var propName = type + "TimeUpdated";
 
-        return FavouriteStocksAnalyzerStorageHelper.getStorageData().find(function (s) {
-            return (s[propName] || 0) == updatedTime;
+        return FavouriteStocksAnalyzerStorageHelper.getStorageData().sort(function (a, b) {
+            if (a.name > b.name) return 1;else return -1;
+        }).find(function (s) {
+            return (s[propName] || 0) === updatedTime;
         });
     }
 
@@ -3790,7 +3792,7 @@ function AllUsaStocks() {
         add('BlackRock', 'blackrock,-inc.-c', 'BLK');
         add('Cabot', 'cabot-microelectr', 'CCMP');
         add('CME Group', 'cme-group-inc.', 'CME');
-        add('Illumina Inc', 'illumina,-inc.', 'ILMN');
+        add('Illumina Inc', 'illumina,-inc', 'ILMN');
         add('JB Hunt', 'j.b.-hunt-transpo', 'JBHT');
         add('Loews', 'loews-corporation', 'L');
         add('Maxim', 'maxim-integrated', 'MXIM');
