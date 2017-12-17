@@ -119,6 +119,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     // result - if update was sent (new window open was called)
     function sendUpdatesIfTopStocksChanged(topStocksCount) {
         try {
+            debugger;
 
             setInitialDistribution();
 
@@ -126,12 +127,18 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             let topStocks = stocks.slice(0, topStocksCount);
 
             let topStocksHash = topStocks.map(s => s.name).join();
+            let sentStocksMeta = FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocksMetadata();
 
-            if (FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocks() == topStocksHash) {
+            let isStocksNotChanged = FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocks() === topStocksHash;
+            let isTenMinutesPastAfterLastUpdate =  (new Date().getTime() - sentStocksMeta.lastUpdateSentTime)/1000/60 > 10;
+            if (isStocksNotChanged || !isTenMinutesPastAfterLastUpdate) {
                 return false;
             }
 
             FavouriteStocksAnalyzerStorageHelper.setLastSentTopStocks(topStocksHash);
+
+            sentStocksMeta.lastUpdateSentTime = new Date().getTime();
+            FavouriteStocksAnalyzerStorageHelper.setLastSentTopStocksMetadata(sentStocksMeta);
 
             let stocksDto = topStocks.map(s => ({
                 name: s.name,
@@ -156,7 +163,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     function sendToVkontakte(stocksDtoJson) {
         jsHelper.openInNewWindow("GET", "https://vk.com/club157318779",
             [
-                // {Value: "p", Text: "@usa_stocks"},
                 {Value: "stocks", Text: stocksDtoJson}
             ]);
     }

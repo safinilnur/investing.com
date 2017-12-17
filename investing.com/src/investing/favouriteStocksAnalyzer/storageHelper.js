@@ -14,11 +14,14 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
     this.clearNextUrl = clearNextUrl;
     this.getLastSentTopStocks = getLastSentTopStocks;
     this.setLastSentTopStocks = setLastSentTopStocks;
+    this.getLastSentTopStocksMetadata = getLastSentTopStocksMetadata;
+    this.setLastSentTopStocksMetadata = setLastSentTopStocksMetadata;
 
     let storageKey = InvestingConsts.favouriteStocksStatisticsLocalStorageKey;
     let storageKeyNextUrlToFetchData = "favouriteStocksNextUrl";
     let storageKeyPageRefreshCount = "favouriteStocksPageRefreshCount";
     let storageKeyTopStocksLastUpdate = "favouriteStocks_top_10_latest";
+    let storageKeyTopStocksMetadata = "favouriteStocks_top_10_metadata";
 
     function saveItemInStorage(itemToSave) {
         let items = getStorageData();
@@ -42,6 +45,19 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
         let storageValue = localStorage.getItem(storageKeyTopStocksLastUpdate) || "";
 
         return storageValue;
+    }
+
+    function getLastSentTopStocksMetadata(){
+        let storageValue = localStorage.getItem(storageKeyTopStocksMetadata) || "{}";
+        let result = JSON.parse(storageValue);
+
+        result.lastUpdateSentTime = result.lastUpdateSentTime || 0;
+
+        return result;
+    }
+
+    function setLastSentTopStocksMetadata(value){
+        localStorage.setItem(storageKeyTopStocksMetadata, JSON.stringify(value));
     }
 
     function setLastSentTopStocks(value){

@@ -1639,11 +1639,14 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
     this.clearNextUrl = clearNextUrl;
     this.getLastSentTopStocks = getLastSentTopStocks;
     this.setLastSentTopStocks = setLastSentTopStocks;
+    this.getLastSentTopStocksMetadata = getLastSentTopStocksMetadata;
+    this.setLastSentTopStocksMetadata = setLastSentTopStocksMetadata;
 
     var storageKey = InvestingConsts.favouriteStocksStatisticsLocalStorageKey;
     var storageKeyNextUrlToFetchData = "favouriteStocksNextUrl";
     var storageKeyPageRefreshCount = "favouriteStocksPageRefreshCount";
     var storageKeyTopStocksLastUpdate = "favouriteStocks_top_10_latest";
+    var storageKeyTopStocksMetadata = "favouriteStocks_top_10_metadata";
 
     function saveItemInStorage(itemToSave) {
         var items = getStorageData();
@@ -1667,6 +1670,19 @@ function FavouriteStocksAnalyzerStorageHelper(InvestingConsts) {
         var storageValue = localStorage.getItem(storageKeyTopStocksLastUpdate) || "";
 
         return storageValue;
+    }
+
+    function getLastSentTopStocksMetadata() {
+        var storageValue = localStorage.getItem(storageKeyTopStocksMetadata) || "{}";
+        var result = JSON.parse(storageValue);
+
+        result.lastUpdateSentTime = result.lastUpdateSentTime || 0;
+
+        return result;
+    }
+
+    function setLastSentTopStocksMetadata(value) {
+        localStorage.setItem(storageKeyTopStocksMetadata, JSON.stringify(value));
     }
 
     function setLastSentTopStocks(value) {
@@ -2137,6 +2153,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     // result - if update was sent (new window open was called)
     function sendUpdatesIfTopStocksChanged(topStocksCount) {
         try {
+            debugger;
 
             setInitialDistribution();
 
@@ -2146,12 +2163,18 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             var topStocksHash = topStocks.map(function (s) {
                 return s.name;
             }).join();
+            var sentStocksMeta = FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocksMetadata();
 
-            if (FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocks() == topStocksHash) {
+            var isStocksNotChanged = FavouriteStocksAnalyzerStorageHelper.getLastSentTopStocks() === topStocksHash;
+            var isTenMinutesPastAfterLastUpdate = (new Date().getTime() - sentStocksMeta.lastUpdateSentTime) / 1000 / 60 > 10;
+            if (isStocksNotChanged || !isTenMinutesPastAfterLastUpdate) {
                 return false;
             }
 
             FavouriteStocksAnalyzerStorageHelper.setLastSentTopStocks(topStocksHash);
+
+            sentStocksMeta.lastUpdateSentTime = new Date().getTime();
+            FavouriteStocksAnalyzerStorageHelper.setLastSentTopStocksMetadata(sentStocksMeta);
 
             var stocksDto = topStocks.map(function (s) {
                 return {
@@ -2175,9 +2198,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     }
 
     function sendToVkontakte(stocksDtoJson) {
-        jsHelper.openInNewWindow("GET", "https://vk.com/club157318779", [
-        // {Value: "p", Text: "@usa_stocks"},
-        { Value: "stocks", Text: stocksDtoJson }]);
+        jsHelper.openInNewWindow("GET", "https://vk.com/club157318779", [{ Value: "stocks", Text: stocksDtoJson }]);
     }
 
     function setupTopStocksToBeUpdated(topStocksCount, limitBeforeUpdatingTopStocks) {
