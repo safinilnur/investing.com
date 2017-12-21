@@ -94,8 +94,8 @@ function registerInfrastructure() {
     __webpack_require__(17);
     __webpack_require__(18);
     __webpack_require__(19);
-
     __webpack_require__(20);
+
     __webpack_require__(21);
     __webpack_require__(22);
     __webpack_require__(23);
@@ -105,6 +105,7 @@ function registerInfrastructure() {
     __webpack_require__(27);
     __webpack_require__(28);
     __webpack_require__(29);
+    __webpack_require__(30);
 
     _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
     _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
@@ -1575,15 +1576,31 @@ _investStocks.ctx.register("DateHelper").asCtor(DateHelper);
 
 function DateHelper() {
     this.getDate = getDate;
+    this.getDaysCountBeforeDate = getDaysCountBeforeDate;
 
     var ruLocale = "ru-Ru";
+    var DAY_MS = 1000 * 60 * 60 * 24;
 
     function getDate(value, convertionType) {
         switch (convertionType) {
             case 1:
                 var date = new Date(value);
                 return date.toLocaleDateString(ruLocale) + ' ' + date.getHours() + ":" + date.getMinutes();
+            case 2:
+                // dd/mm/yyyy => Date
+                if (!value) {
+                    return;
+                }
+                var parts = value.split('.');
+                // year, month (starts from 0), day
+                return new Date(parts[2], parts[1] - 1, parts[0]);
         }
+    }
+
+    function getDaysCountBeforeDate(date) {
+        var futureDate = getDate(date, 2);
+
+        return futureDate && Math.round((futureDate - new Date()) / DAY_MS) || 365;
     }
 }
 
@@ -1774,6 +1791,7 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         item.technicalSummary = getMinimalEstimation();
         item.stockPrice = getStockPrice();
         item.yearRate = getYearRate();
+        item.reportDate = getReportDate();
 
         item.mainDataCollected = true;
         item.mainTimeUpdated = new Date().getTime();
@@ -1790,6 +1808,10 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
 
     function getStockPrice() {
         return parseFloat($('#last_last').html().replace(".", "").replace(",", "."));
+    }
+
+    function getReportDate() {
+        return $('#leftColumn > div.clear.overviewDataTable > div:nth-child(15) > span.float_lang_base_2.bold > a').html();
     }
 
     function getYearRate() {
@@ -2014,11 +2036,34 @@ function FinancialSummaryStockInfoLoadingStrategy(FavouriteStocksAnalyzerStorage
 "use strict";
 
 
+_investStocks.ctx.register("FavouriteStockReportHtmlHelper").asCtor(FavouriteStockReportHtmlHelper).dependencies("DateHelper");
+
+function FavouriteStockReportHtmlHelper(DateHelper) {
+    this.getDateBeforeReportHtml = getDateBeforeReportHtml;
+
+    function getDateBeforeReportHtml(stock) {
+        var daysBeforeReport = DateHelper.getDaysCountBeforeDate(stock.reportDate);
+        var tdClass = "";
+
+        if (daysBeforeReport < 10) {
+            tdClass = " class=\'report-is-close\'";
+        }
+        return "<td " + tdClass + ">" + DateHelper.getDaysCountBeforeDate(stock.reportDate) + "</td>";
+    }
+}
+
+/***/ }),
+/* 20 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-_investStocks.ctx.register("FavouriteStocksAnalyzer").asCtor(FavouriteStocksAnalyzer).dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," + "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper," + "FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper");
+_investStocks.ctx.register("FavouriteStocksAnalyzer").asCtor(FavouriteStocksAnalyzer).dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," + "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper," + "FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper, FavouriteStockReportHtmlHelper");
 
-function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations, FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper, FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper) {
+function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations, FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper, FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper, FavouriteStockReportHtmlHelper) {
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
@@ -2247,9 +2292,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             splitMoneyByChoosenStocks(items);
 
             var itemsHtml = items.map(function (i) {
-                return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>-" + i.historicalData.percentTenDaysFall + "%</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[0]) + "</td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[1]) + "</td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[2]) + "</td>" + "<td>" + getStockGainPriorityRate(i) + "</td>" + "<td>" + DateHelper.getDate(getStockLastUpdatedTime(i), 1) + "</td>" + "</tr>";
+                return "<tr>" + "<td><a href='" + i.url + "'>" + i.name + "</a></td>" + "<td>" + FinamStockRecommendationTypes.convertRecommendationToString(i.technicalSummary) + "</td>" + "<td>" + i.stockPrice + "</td>" + "<td>" + i.yearRate + "</td>" + "<td>-" + i.historicalData.percentTenDaysFall + "%</td>" + "<td>" + (i.countToBuy || "") + "</td>" + "<td><input type='checkbox' id='" + i.id + "'/></td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[0]) + "</td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[1]) + "</td>" + "<td>" + getStockStrategyRate(i, loadingDataStrategies[2]) + "</td>" + "<td>" + getStockGainPriorityRate(i) + "</td>" + FavouriteStockReportHtmlHelper.getDateBeforeReportHtml(i) + "<td>" + DateHelper.getDate(getStockLastUpdatedTime(i), 1) + "</td>" + "</tr>";
             });
-            var resultHtml = "<div class='stock-recommedations'><table>" + "<tr><td colspan='11'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='11'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "<tr><td colspan='11'>" + "<button id='close-favourite-stocks-report'>Очистить</button>" + "<button id='do-initial-sort'>Исходная сортировка</button>" + "<button id='update-first-ten'>Обновить топ-10</button>" + "</td></tr>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "<th>kYearRisk</th>" + "<th>k10Fall</th>" + "<th>kFinStat</th>" + "<th>kTotal</th>" + "<th>updTime</th>" + "</tr>" + itemsHtml.join('') + "</table></div>";
+            var resultHtml = "<div class='stock-recommedations'><table>" + "<tr><td colspan='11'>Расчет по портфелю: " + FinamFavouriteStocks.portfolioVolume + "$</td></td></tr>" + "<tr><td colspan='11'>Остаток средств: " + parseInt(getAvailabeDollarsAmount(items)) + "$</td></td></tr>" + "<tr><td colspan='11'>" + "<button id='close-favourite-stocks-report'>Очистить</button>" + "<button id='do-initial-sort'>Исходная сортировка</button>" + "<button id='update-first-ten'>Обновить топ-10</button>" + "</td></tr>" + "<tr>" + "<th>Название</th>" + "<th>Тех. рекомендация</th>" + "<th>Цена</th>" + "<th>Годовой рост</th>" + "<th>10дн падение</th>" + "<th>Позиция</th>" + "<th>Участие</th>" + "<th>kYearRisk</th>" + "<th>k10Fall</th>" + "<th>kFinStat</th>" + "<th>kTotal</th>" + "<th>дн до отчета</th>" + "<th>updTime</th>" + "</tr>" + itemsHtml.join('') + "</table></div>";
             $('body').html(resultHtml);
 
             CssStockRecommendations.appendStyle();
@@ -2399,7 +2444,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
 }
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2441,7 +2486,7 @@ function FinamStockRecommendationTypes() {
 }
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2460,12 +2505,12 @@ function CssStockRecommendations() {
     }
 
     function getCssContent() {
-        return '\n        .stock-recommedations tr {       font-size: 16px;   font-family: cursive;        }\n        .stock-recommedations td,.stock-recommedations th {\n                padding:5px 0 0 15px}\n\n            .stock-recommedations table {position: relative;text-align: left;margin: auto;}\n\n            .stock-recommedations  tr,.stock-recommedations th, .stock-recommedations td {\n                border: 1px solid;\n            }\n\n            .stock-recommedations th {\n                font-weight: 800;\n            }        \n        ';
+        return '\n        .stock-recommedations tr {       \n            font-size: 16px;   font-family: cursive;        \n        }\n        \n        .stock-recommedations td,.stock-recommedations th {\n            padding:5px 0 0 15px\n        }\n\n        .stock-recommedations table {\n            position: relative;text-align: left;margin: auto;\n        }\n\n        .stock-recommedations  tr,.stock-recommedations th, .stock-recommedations td {\n            border: 1px solid;\n        }\n\n        .stock-recommedations th {\n            font-weight: 800;\n        } \n            \n        .report-is-close{\n            background-color: green;\n            color: yellow;\n        }       \n        ';
     }
 }
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2482,7 +2527,7 @@ function InvestingAvailablefunctions() {
 }
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2566,7 +2611,7 @@ function GetSpbStockList() {
 }
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3140,7 +3185,7 @@ function SpbStockList() {
 }
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3224,7 +3269,7 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
 }
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -3255,7 +3300,7 @@ function LocalStorageHelper() {
 }
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4291,7 +4336,7 @@ function AllUsaStocks() {
 }
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4341,7 +4386,7 @@ function FavouriteStocksFiltering(FinamFavouriteStocks, FavouriteStocksAnalyzer,
 }
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";

@@ -2,11 +2,11 @@ _investStocks.ctx.register("FavouriteStocksAnalyzer")
     .asCtor(FavouriteStocksAnalyzer)
     .dependencies("FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations," +
         "FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper," +
-        "FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper");
+        "FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper, FavouriteStockReportHtmlHelper");
 
 function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationTypes, CssStockRecommendations,
                                  FinamMainStockInfoLoadingStrategy, FinamHistoricalStockInfoLoadingStrategy, FavouriteStocksAnalyzerStorageHelper,
-                                 FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper) {
+                                 FinancialSummaryStockInfoLoadingStrategy, DigitsHelper, DateHelper, jsHelper, FavouriteStockReportHtmlHelper) {
     this.run = run;
     this.loadData = loadData;
     this.showStatistics = showStatistics;
@@ -226,6 +226,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                 "<td>" + getStockStrategyRate(i, loadingDataStrategies[1]) + "</td>" +
                 "<td>" + getStockStrategyRate(i, loadingDataStrategies[2]) + "</td>" +
                 "<td>" + getStockGainPriorityRate(i) + "</td>" +
+                FavouriteStockReportHtmlHelper.getDateBeforeReportHtml(i) +
                 "<td>" + DateHelper.getDate(getStockLastUpdatedTime(i), 1) + "</td>" +
                 "</tr>"
             );
@@ -251,6 +252,7 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
                 "<th>k10Fall</th>" +
                 "<th>kFinStat</th>" +
                 "<th>kTotal</th>" +
+                "<th>дн до отчета</th>" +
                 "<th>updTime</th>" +
                 "</tr>" +
 

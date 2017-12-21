@@ -43,6 +43,7 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         item.technicalSummary =getMinimalEstimation();
         item.stockPrice = getStockPrice();
         item.yearRate = getYearRate();
+        item.reportDate = getReportDate();
 
         item.mainDataCollected = true;
         item.mainTimeUpdated = new Date().getTime();
@@ -58,6 +59,10 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
 
     function getStockPrice(){
         return parseFloat($('#last_last').html().replace(".", "").replace(",", "."));
+    }
+
+    function getReportDate(){
+        return $('#leftColumn > div.clear.overviewDataTable > div:nth-child(15) > span.float_lang_base_2.bold > a').html();
     }
 
     function getYearRate(){

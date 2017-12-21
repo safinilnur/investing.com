@@ -22,6 +22,7 @@ function registerInfrastructure(){
     require('./investing/favouriteStocksAnalyzer/loadingStrategies/mainStockInfoStrategy');
     require('./investing/favouriteStocksAnalyzer/loadingStrategies/historicalStockInfoStrategy');
     require('./investing/favouriteStocksAnalyzer/loadingStrategies/financialSummaryStockInfoStrategy');
+    require('./investing/favouriteStocksAnalyzer/favouriteStockReportHtmlHelper');
     require('./investing/favouriteStocksAnalyzer/favouriteStocksAnalyzer');
 
     require('./investing/consts/stockRecommendations');
