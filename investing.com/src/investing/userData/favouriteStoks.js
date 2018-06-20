@@ -231,7 +231,7 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("Cisco", "cisco-sys-inc", false);
         add("Loews", "loews-corporation", false);
         add("Abbott Labs", "abbott-laboratories", true);
-        add("CR Bard", "c-r-bard", true);
+        add("CR Bard", "c-r-bard", false);
         add("Jacobs Engineering", "jacobs-engineer", true);
         add("McDonald’s", "mcdonalds", true);
         add("Applied materials", "applied-matls-inc", true);
@@ -322,7 +322,7 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("Delta Air Lines", "delta-air-lines-new", false);
         add("Charter Communications", "charter-communications", true);
         add("Zions", "zions-bancorp", true);
-        add("Scripps Networks", "scripps-networks-interactive", true);
+        add("Scripps Networks", "scripps-networks-interactive");
         add("Cummins", "cummins-inc", true);
         add("AIG", "american-intl-group", false);
         add("Ball", "ball-corp", false);
@@ -374,7 +374,7 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("ICICI Bank ADR", "icici-bank", false);
         add("DuPont", "du-pont", true);
         add("McCormick&Co", "mccormick---co", false);
-        add("Monsanto", "monsanto", true);
+        add("Monsanto", "monsanto", false);
         add("T Rowe", "t-rowe-price-gp", true);
         add("Johnson Controls", "johnson-controls", false);
         add("Dr Reddys Labs", "dr.-reddys-laboratories", false);
@@ -422,7 +422,7 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("American Express", "american-express", true);
         add("Juniper", "juniper-networks-inc", false);
         add("Waters", "waters-corp", true);
-        add("Illumina Inc", "illumina,-inc", true);
+        add("Illumina Inc", "illumina,-inc.", true);
         add("BlackRock", "blackrock,-inc.-c", true);
         add("celgene", "celgene-corp", false);
         add("Rockwell Collins", "rockwe-coll", true);
