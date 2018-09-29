@@ -185,7 +185,6 @@ function AllUsaStocks(){
         add('Lockheed Martin', 'lockheed-martin', 'LMT');
         add('Waters', 'waters-corp', 'WAT');
         add('Accenture', 'accenture-ltd', 'ACN');
-        add('XL Group', 'xl-capital-ltd', 'XL');
         add('Dominion Resources', 'dominion-res', 'D');
         add('Exxon Mobil', 'exxon-mobil', 'XOM');
         add('Cigna', 'cigna-corp', 'CI');
@@ -378,7 +377,6 @@ function AllUsaStocks(){
         add('Chubb', 'chubb-corp', 'CB');
         add('Leucadia National', 'leucadia-natl', 'LUK');
         add('J&J', 'johnson-johnson', 'JNJ');
-        add('Time Warner', 'time-warner', 'TWX');
         add('Tyson Foods', 'tyson-foods', 'TSN');
         add('Target', 'target', 'TGT');
         add('Jabil Circuit', 'jabil-circuit', 'JBL');

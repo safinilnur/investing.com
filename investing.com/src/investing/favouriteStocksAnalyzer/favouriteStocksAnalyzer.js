@@ -64,10 +64,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             return;
         }
 
-        setupTopStocksToBeUpdated(10, 50);
+        setupTopStocksToBeUpdated(10, 300);
         let wasUpdateSent = sendUpdatesIfTopStocksChanged(4);
 
-        debugger;
         if (!wasUpdateSent) {
             doStrategy();
         } else {
@@ -119,7 +118,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     // result - if update was sent (new window open was called)
     function sendUpdatesIfTopStocksChanged(topStocksCount) {
         try {
-            debugger;
 
             setInitialDistribution();
 

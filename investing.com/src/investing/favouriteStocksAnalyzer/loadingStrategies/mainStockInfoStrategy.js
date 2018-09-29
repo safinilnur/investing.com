@@ -44,6 +44,9 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         item.stockPrice = getStockPrice();
         item.yearRate = getYearRate();
         item.reportDate = getReportDate();
+        debugger;
+        item.investingStockId = getStockId();
+        item.shortName = getStockShortName();
 
         item.mainDataCollected = true;
         item.mainTimeUpdated = new Date().getTime();
@@ -59,6 +62,14 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
 
     function getStockPrice(){
         return parseFloat($('#last_last').html().replace(".", "").replace(",", "."));
+    }
+
+    function getStockId(){
+        return parseInt($('[data-pair-id!=""]:[data-pair-id]').attr('data-pair-id'));
+    }
+
+    function getStockShortName(){
+        return $('[itemprop="tickerSymbol"]').attr('content');
     }
 
     function getReportDate(){

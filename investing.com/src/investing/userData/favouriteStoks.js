@@ -285,7 +285,6 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("Leggett&Platt", "leggett---platt", false);
         add("Ralph Lauren", "polo-ralph-laur", false);
         add("Symantec", "symantec-corp", false);
-        add("Time Warner", "time-warner", false);
         add("Nordstrom", "nordstrom-inc", false);
         add("Xerox", "xerox-corp", false);
         add("Scana", "scana-corp", false);
@@ -329,7 +328,6 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("Sysco", "sysco-corp", false);
         add("TJX", "tjx-co-inc", false);
         add("International Paper", "intl-paper-co", true);
-        add("XL Group", "xl-capital-ltd", false);
         add("Invesco", "invesco-ltd", true);
         add("Comerica", "comerica-inc", true);
         add("Fidelity National Info", "fidelity-natl-in", false);

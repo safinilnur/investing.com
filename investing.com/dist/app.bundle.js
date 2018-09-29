@@ -1351,7 +1351,6 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("Leggett&Platt", "leggett---platt", false);
         add("Ralph Lauren", "polo-ralph-laur", false);
         add("Symantec", "symantec-corp", false);
-        add("Time Warner", "time-warner", false);
         add("Nordstrom", "nordstrom-inc", false);
         add("Xerox", "xerox-corp", false);
         add("Scana", "scana-corp", false);
@@ -1395,7 +1394,6 @@ function FinamFavouriteStocks(SpbStockList, AllUsaStocks) {
         add("Sysco", "sysco-corp", false);
         add("TJX", "tjx-co-inc", false);
         add("International Paper", "intl-paper-co", true);
-        add("XL Group", "xl-capital-ltd", false);
         add("Invesco", "invesco-ltd", true);
         add("Comerica", "comerica-inc", true);
         add("Fidelity National Info", "fidelity-natl-in", false);
@@ -1792,6 +1790,9 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         item.stockPrice = getStockPrice();
         item.yearRate = getYearRate();
         item.reportDate = getReportDate();
+        debugger;
+        item.investingStockId = getStockId();
+        item.shortName = getStockShortName();
 
         item.mainDataCollected = true;
         item.mainTimeUpdated = new Date().getTime();
@@ -1808,6 +1809,14 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
 
     function getStockPrice() {
         return parseFloat($('#last_last').html().replace(".", "").replace(",", "."));
+    }
+
+    function getStockId() {
+        return parseInt($('[data-pair-id!=""]:[data-pair-id]').attr('data-pair-id'));
+    }
+
+    function getStockShortName() {
+        return $('[itemprop="tickerSymbol"]').attr('content');
     }
 
     function getReportDate() {
@@ -2143,10 +2152,9 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
             return;
         }
 
-        setupTopStocksToBeUpdated(10, 50);
+        setupTopStocksToBeUpdated(10, 300);
         var wasUpdateSent = sendUpdatesIfTopStocksChanged(4);
 
-        debugger;
         if (!wasUpdateSent) {
             doStrategy();
         } else {
@@ -2198,7 +2206,6 @@ function FavouriteStocksAnalyzer(FinamFavouriteStocks, FinamStockRecommendationT
     // result - if update was sent (new window open was called)
     function sendUpdatesIfTopStocksChanged(topStocksCount) {
         try {
-            debugger;
 
             setInitialDistribution();
 
@@ -3492,7 +3499,6 @@ function AllUsaStocks() {
         add('Lockheed Martin', 'lockheed-martin', 'LMT');
         add('Waters', 'waters-corp', 'WAT');
         add('Accenture', 'accenture-ltd', 'ACN');
-        add('XL Group', 'xl-capital-ltd', 'XL');
         add('Dominion Resources', 'dominion-res', 'D');
         add('Exxon Mobil', 'exxon-mobil', 'XOM');
         add('Cigna', 'cigna-corp', 'CI');
@@ -3685,7 +3691,6 @@ function AllUsaStocks() {
         add('Chubb', 'chubb-corp', 'CB');
         add('Leucadia National', 'leucadia-natl', 'LUK');
         add('J&J', 'johnson-johnson', 'JNJ');
-        add('Time Warner', 'time-warner', 'TWX');
         add('Tyson Foods', 'tyson-foods', 'TSN');
         add('Target', 'target', 'TGT');
         add('Jabil Circuit', 'jabil-circuit', 'JBL');

@@ -4,8 +4,6 @@ function registerInfrastructure(){
 
 	require('./ctx');
 
-    var ctx = _investStocks.ctx;
-
     require('./common/helpers/digitsHelper');
     require('./investing/consts/stockExchange');
     require('./brokers/finam/stockList');
