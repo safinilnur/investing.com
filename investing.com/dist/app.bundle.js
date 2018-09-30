@@ -2553,19 +2553,25 @@ function GetSpbStockList() {
         var data = [];
         var urls = [];
 
+        // pages 01-09
         for (var i = 1; i < 10; i++) {
             var url = 'ctl00$BXContent$iii$pager$ctl00$ctl0' + i;
             urls.push(url);
         }
+
+        // pages 10-20
         for (var i = 10; i < 21; i++) {
             var url = 'ctl00$BXContent$iii$pager$ctl00$ctl' + i;
             urls.push(url);
         }
+
+        // pages 22-29
         for (var i = 2; i < 10; i++) {
             var url = 'ctl00$BXContent$iii$pager$ctl00$ctl0' + i;
             urls.push(url);
         }
-        for (var i = 10; i < 17; i++) {
+        // pages 30-38
+        for (var i = 10; i < 19; i++) {
             var url = 'ctl00$BXContent$iii$pager$ctl00$ctl' + i;
             urls.push(url);
         }
@@ -2575,15 +2581,16 @@ function GetSpbStockList() {
     }
 
     function urlsCollectedCallback(data) {
+        debugger;
         data = data.filter(function (e) {
-            return e.name;
+            return e.name && e.shortName;
         });
 
         console.log(data);
 
         var scriptStockCreator = "";
         data.forEach(function (stock) {
-            scriptStockCreator += "addStock(\"" + stock.shortName + "\", \"" + stock.name + "\");\n";
+            scriptStockCreator += "addStock(\"" + stock.shortName + "\", \"" + stock.name.replace('"', '"') + "\");\n";
         });
         console.log(scriptStockCreator);
     }
@@ -2663,7 +2670,7 @@ function SpbStockList() {
         addStock("AAL", "American Airlines Group Inc.");
         addStock("AAP", "Advance Auto Parts, Inc.");
         addStock("AAPL", "Apple Inc.");
-        addStock("ABBN", "Акционерное общество Банк Астаны");
+        addStock("ABBN", "Акционерное общество \"Банк Астаны\"");
         addStock("ABBV", "AbbVie Inc.");
         addStock("ABT", "Abbott Laboratories");
         addStock("ACH", "The Bank of New York Mellon");
@@ -2686,6 +2693,7 @@ function SpbStockList() {
         addStock("AKAM", "Akamai Technologies, Inc.");
         addStock("AKZM", "“Aktobe Metalware Plant” JSC");
         addStock("ALB", "Albemarle Corporation");
+        addStock("undefined", "Alfa Bond Issuance PLC");
         addStock("ALGN", "Align Technology, Inc.");
         addStock("ALK", "Alaska Air Group, Inc.");
         addStock("ALL", "The Allstate Corporation");
@@ -2708,11 +2716,13 @@ function SpbStockList() {
         addStock("APC", "Anadarko Petroleum Corporation");
         addStock("APD", "Air Products &amp; Chemicals, Inc.");
         addStock("APH", "Amphenol Corporation");
+        addStock("APTV", "Aptiv PLC ");
+        addStock("APY", "Apergy Corporation");
         addStock("ARE", "Alexandria Real Estate Equities, Inc.");
         addStock("ARNC", "Arconic Inc.");
         addStock("ATVI", "Activision Blizzard, Inc.");
         addStock("AVB", "AvalonBay Communities, Inc.");
-        addStock("AVGO", "Broadcom Limited");
+        addStock("AVGO", "Broadcom Inc.");
         addStock("AVP", "Avon Products, Inc.");
         addStock("AVY", "Avery Dennison Corporation");
         addStock("AXP", "American Express Company");
@@ -2726,7 +2736,6 @@ function SpbStockList() {
         addStock("BBBY", "Bed Bath &amp; Beyond Inc.");
         addStock("BBT", "BB&amp;T Corporation");
         addStock("BBY", "Best Buy Co., Inc.");
-        addStock("BCR", "C.R. Bard, Inc.");
         addStock("BDX", "Becton, Dickinson and Company");
         addStock("BEN", "Franklin Resources, Inc.");
         addStock("BF.B", "Brown-Forman Corporation");
@@ -2735,12 +2744,15 @@ function SpbStockList() {
         addStock("BIDU", "The Bank of New York Mellon");
         addStock("BIIB", "Biogen Inc.");
         addStock("BK", "The Bank of New York Mellon Corporation");
+        addStock("BKNG", "Booking Holdings Inc.");
         addStock("BLK", "BlackRock, Inc.");
         addStock("BLL", "Ball Corporation");
+        addStock("BMW", "Bayerische Motoren Werke Aktiengesellschaft");
         addStock("BMY", "Bristol-Myers Squibb Company");
         addStock("BRK.B", "Berkshire Hathaway Inc.");
         addStock("BSX", "Boston Scientific Corporation");
         addStock("BTI", "Citibank, N.A.");
+        addStock("BUD", "The Bank of New York Mellon");
         addStock("BWA", "BorgWarner Inc.");
         addStock("BXP", "Boston Properties, Inc.");
         addStock("C", "Citigroup Inc.");
@@ -2749,16 +2761,17 @@ function SpbStockList() {
         addStock("CAH", "Cardinal Health, Inc.");
         addStock("CAT", "Caterpillar Inc.");
         addStock("CB", "Chubb Limited");
-        addStock("CBG", "CBRE Group, Inc.");
-        addStock("CBOE", "Cboe Global Markets, Inc.");
         addStock("CBPO", "China Biologic Products Holdings, Inc.");
+        addStock("CBRE", "CBRE Group, Inc.");
         addStock("CBS", "CBS Corporation");
         addStock("CCI", "Crown Castle International Corp.");
         addStock("CCL", "Carnival Corporation");
+        addStock("CEA", "The Bank of New York Mellon");
         addStock("CELG", "Celgene Corporation");
         addStock("CERN", "Cerner Corporation");
         addStock("CF", "CF Industries Holdings, Inc.");
         addStock("CFG", "Citizens Financial Group, Inc.");
+        addStock("CHA", "The Bank of New York Mellon");
         addStock("CHD", "Church &amp; Dwight Co., Inc.");
         addStock("CHK", "Chesapeake Energy Corporation");
         addStock("CHL", "The Bank of New York Mellon");
@@ -2783,10 +2796,10 @@ function SpbStockList() {
         addStock("COO", "The Cooper Companies, Inc.");
         addStock("COP", "ConocoPhillips");
         addStock("COST", "Costco Wholesale Corporation");
+        addStock("COTY", "Coty Inc.");
         addStock("CPB", "Campbell Soup Company");
         addStock("CRM", "salesforce.com, inc.");
         addStock("CSCO", "Cisco Systems, Inc.");
-        addStock("CSRA", "CSRA Inc.");
         addStock("CTAS", "Cintas Corporation");
         addStock("CTL", "CenturyLink, Inc.");
         addStock("CTSH", "Cognizant Technology Solutions Corporation");
@@ -2802,14 +2815,13 @@ function SpbStockList() {
         addStock("DHI", "D.R. Horton, Inc.");
         addStock("DHR", "Danaher Corporation");
         addStock("DIS", "The Walt Disney Company");
-        addStock("DISCA", "Discovery Communications, Inc.");
-        addStock("DISCK", "Discovery Communications, Inc.");
-        addStock("DLPH", "Delphi Automotive PLC");
+        addStock("DISCA", "Discovery, Inс.");
+        addStock("DISCK", "Discovery, Inс.");
+        addStock("DLPH", "Delphi Technologies PLC");
         addStock("DLR", "Digital Realty Trust, Inc.");
         addStock("DLTR", "Dollar Tree, Inc.");
         addStock("DNB", "The Dun &amp; Bradstreet Corporation");
         addStock("DOV", "Dover Corporation");
-        addStock("DPS", "Dr Pepper Snapple Group, Inc.");
         addStock("DRI", "Darden Restaurants, Inc.");
         addStock("DVA", "DaVita Inc.");
         addStock("DVN", "Devon Energy Corporation");
@@ -2832,11 +2844,13 @@ function SpbStockList() {
         addStock("ESS", "Essex Property Trust, Inc.");
         addStock("ETFC", "E*TRADE Financial Corporation");
         addStock("ETN", "Eaton Corporation plc");
+        addStock("ETP", "Energy Transfer Partners, L.P.");
         addStock("EVHC", "Envision Healthcare Corporation");
+        addStock("undefined", "Evraz Group S.A.");
         addStock("EW", "Edwards Lifesciences Corporation");
         addStock("EXC", "Exelon Corporation");
         addStock("EXPD", "Expeditors International of Washington, Inc.");
-        addStock("EXPE", "Expedia, Inc.");
+        addStock("EXPE", "Expedia Group, Inc.");
         addStock("EXR", "Extra Space Storage Inc.");
         addStock("F", "Ford Motor Company");
         addStock("FAST", "Fastenal Company");
@@ -2848,6 +2862,7 @@ function SpbStockList() {
         addStock("FIS", "Fidelity National Information Services, Inc.");
         addStock("FISV", "Fiserv, Inc.");
         addStock("FITB", "Fifth Third Bancorp");
+        addStock("FL", "Foot Locker, Inc.");
         addStock("FLIR", "FLIR Systems, Inc.");
         addStock("FLR", "Fluor Corporation");
         addStock("FLS", "Flowserve Corporation");
@@ -2858,20 +2873,27 @@ function SpbStockList() {
         addStock("FTI", "TechnipFMC plc");
         addStock("FTR", "Frontier Communications Corporation");
         addStock("FTV", "Fortive Corporation");
+        addStock("undefined", "Gaz Capital S.A.");
+        addStock("undefined", "Gaz Capital S.A.");
+        addStock("undefined", "Gaz Capital S.A.");
         addStock("GD", "General Dynamics Corporation");
         addStock("GE", "General Electric Company");
-        addStock("GGP", "GGP Inc.");
         addStock("GILD", "GILEAD SCIENCES, INC.");
         addStock("GIS", "General Mills, Inc.");
         addStock("GLW", "Corning Incorporated");
         addStock("GM", "General Motors Company");
+        addStock("undefined", "MMC Finance Designated Activity Company");
         addStock("GOOG", "Alphabet Inc.");
         addStock("GOOGL", "Alphabet Inc.");
+        addStock("undefined", "GPB Eurobond Finance Plc");
         addStock("GPC", "Genuine Parts Company");
         addStock("GPN", "Global Payments Inc.");
+        addStock("undefined", "GPN Capital S.A.");
+        addStock("undefined", "GPN Capital S.A.");
         addStock("GPS", "The Gap, Inc.");
         addStock("GRMN", "Garmin Ltd.");
         addStock("GS", "The Goldman Sachs Group, Inc.");
+        addStock("GSH", "JPMorgan Chase Bank, N.A.");
         addStock("GT", "The Goodyear Tire &amp; Rubber Company");
         addStock("GWW", "WW Grainger, Inc.");
         addStock("HAL", "Halliburton Company");
@@ -2879,12 +2901,12 @@ function SpbStockList() {
         addStock("HBAN", "Huntington Bancshares Incorporated");
         addStock("HBI", "Hanesbrands Inc.");
         addStock("HCA", "HCA Healthcare, Inc.");
-        addStock("HCN", "Welltower Inc.");
         addStock("HCP", "HCP, Inc.");
         addStock("HD", "The Home Depot, Inc.");
         addStock("HES", "Hess Corporation");
         addStock("HIG", "The Hartford Financial Services Group, Inc.");
         addStock("HLT", "Hilton Worldwide Holdings Inc.");
+        addStock("HNP", "Citibank, N.A.");
         addStock("HOG", "Harley-Davidson, Inc.");
         addStock("HOLX", "Hologic, Inc.");
         addStock("HON", "Honeywell International Inc.");
@@ -2897,6 +2919,7 @@ function SpbStockList() {
         addStock("HSIC", "Henry Schein, Inc.");
         addStock("HST", "Host Hotels &amp; Resorts, Inc.");
         addStock("HSY", "The Hershey Company");
+        addStock("HTHT", "Citibank, N.A.");
         addStock("HUM", "Humana Inc.");
         addStock("IBM", "International Business Machines Corporation");
         addStock("IBN", "Deutsche Bank Trust Company Americas");
@@ -2920,11 +2943,14 @@ function SpbStockList() {
         addStock("JCI", "Johnson Controls International plc");
         addStock("JD", "Deutsche Bank Trust Company Americas");
         addStock("JEC", "Jacobs Engineering Group Inc.");
+        addStock("JEF", "Jefferies Financial Group Inc.");
         addStock("JNJ", "Johnson &amp; Johnson");
         addStock("JNPR", "Juniper Networks, Inc.");
+        addStock("JOBS", "JPMorgan Chase Bank, N.A.");
         addStock("JPM", "JPMorgan Chase &amp; Co.");
         addStock("JWN", "Nordstrom, Inc.");
         addStock("K", "Kellogg Company");
+        addStock("KDP", "Keurig Dr Pepper Inc.");
         addStock("KEP", "Citibank, N.A.");
         addStock("KEY", "KeyCorp");
         addStock("KHC", "The Kraft Heinz Company");
@@ -2941,6 +2967,7 @@ function SpbStockList() {
         addStock("LB", "L Brands, Inc.");
         addStock("LEG", "Leggett &amp; Platt, Incorporated");
         addStock("LEN", "Lennar Corporation");
+        addStock("LFC", "Deutsche Bank Trust Company Americas");
         addStock("LH", "Laboratory Corporation of America Holdings");
         addStock("LKQ", "LKQ Corporation");
         addStock("LLL", "L3 Technologies, Inc.");
@@ -2951,9 +2978,7 @@ function SpbStockList() {
         addStock("LOW", "Lowe's Companies, Inc.");
         addStock("LPL", "Citibank, N.A.");
         addStock("LRCX", "Lam Research Corporation");
-        addStock("LUK", "Leucadia National Corporation");
         addStock("LUV", "Southwest Airlines Co.");
-        addStock("LVLT", "Level 3 Communications, Inc.");
         addStock("LYB", "LyondellBasell Industries N.V.");
         addStock("M", "Macy's, Inc.");
         addStock("MA", "Mastercard Incorporated");
@@ -2981,7 +3006,6 @@ function SpbStockList() {
         addStock("MNST", "Monster Beverage Corporation");
         addStock("MO", "Altria Group, Inc.");
         addStock("MOMO", "Deutsche Bank Trust Company Americas");
-        addStock("MON", "Monsanto Company");
         addStock("MOS", "The Mosaic Company");
         addStock("MPC", "Marathon Petroleum Corporation");
         addStock("MRK", "Merck &amp; Co., Inc.");
@@ -2991,7 +3015,7 @@ function SpbStockList() {
         addStock("MSI", "Motorola Solutions, Inc.");
         addStock("MTB", "M&amp;T Bank Corporation");
         addStock("MTD", "Mettler-Toledo International Inc.");
-        addStock("undefined", "MTS International Funding Limited");
+        addStock("undefined", "MTS International Funding DAC");
         addStock("MU", "Micron Technology, Inc.");
         addStock("MUR", "Murphy Oil Corporation");
         addStock("MYL", "Mylan N.V.");
@@ -3014,6 +3038,7 @@ function SpbStockList() {
         addStock("NUE", "Nucor Corporation");
         addStock("NVDA", "NVIDIA Corporation");
         addStock("undefined", "Novatek Finance Designated Activity Company");
+        addStock("undefined", "Novatek Finance Designated Activity Company");
         addStock("NWL", "Newell Brands Inc.");
         addStock("NWS", "News Corporation");
         addStock("NWSA", "News Corporation");
@@ -3024,11 +3049,11 @@ function SpbStockList() {
         addStock("ORCL", "Oracle Corporation");
         addStock("ORLY", "O'Reilly Automotive, Inc.");
         addStock("OXY", "Occidental Petroleum Corporation");
+        addStock("PANW", "Palo Alto Networks, Inc.");
         addStock("PBCT", "People's United Financial, Inc.");
         addStock("PBI", "Pitney Bowes Inc.");
         addStock("PCAR", "PACCAR Inc");
         addStock("PCG", "PG&amp;E Corporation");
-        addStock("PCLN", "The Priceline Group Inc.");
         addStock("PDCO", "Patterson Companies, Inc.");
         addStock("PEG", "Public Service Enterprise Group Incorporated");
         addStock("PEP", "PepsiCo, Inc.");
@@ -3044,6 +3069,7 @@ function SpbStockList() {
         addStock("PNC", "The PNC Financial Services Group, Inc.");
         addStock("PPG", "PPG Industries, Inc.");
         addStock("PPL", "PPL Corporation");
+        addStock("PRSP", "Perspecta Inc.");
         addStock("PRU", "Prudential Financial, Inc.");
         addStock("PSA", "Public Storage");
         addStock("PSX", "Phillips 66");
@@ -3070,27 +3096,34 @@ function SpbStockList() {
         addStock("RL", "Ralph Lauren Corporation");
         addStock("ROK", "Rockwell Automation, Inc.");
         addStock("ROP", "Roper Technologies, Inc.");
+        addStock("undefined", "Rosneft International Finance Designated Activity Company");
         addStock("ROST", "Ross Stores, Inc.");
         addStock("RRC", "Range Resources Corporation");
         addStock("RSG", "Republic Services, Inc.");
+        addStock("undefined", "RSHB Capital S.A.");
         addStock("RTN", "Raytheon Company");
         addStock("SBUX", "Starbucks Corporation");
         addStock("SCG", "SCANA Corporation");
         addStock("SCHW", "The Charles Schwab Corporation");
         addStock("SEE", "Sealed Air Corporation");
+        addStock("undefined", "Societe Generale  S.A.");
+        addStock("SHI", "The Bank of New York Mellon");
+        addStock("SHPG", "Citibank, N.A.");
         addStock("SHW", "The Sherwin-Williams Company");
         addStock("SIG", "Signet Jewelers Limited");
         addStock("SJM", "The J.M. Smucker Company");
         addStock("SKM", "Citibank, N.A.");
         addStock("SLB", "Schlumberger Limited");
         addStock("SLG", "SL Green Realty Corp.");
+        addStock("SMI", "JPMorgan Chase Bank, N.A.");
         addStock("SNA", "Snap-on Incorporated");
-        addStock("SNI", "Scripps Networks Interactive, Inc.");
         addStock("SNPS", "Synopsys, Inc.");
         addStock("SO", "The Southern Company");
-        addStock("SOHU", "Sohu.com Inc.");
+        addStock("SOHU", "The Bank of New York Mellon");
         addStock("SPG", "Simon Property Group, Inc.");
         addStock("SPGI", "S&amp;P Global Inc.");
+        addStock("SPLK", "Splunk Inc.");
+        addStock("SQ", "Square, Inc.");
         addStock("SRCL", "Stericycle, Inc.");
         addStock("SRE", "Sempra Energy");
         addStock("STT", "State Street Corporation");
@@ -3105,6 +3138,7 @@ function SpbStockList() {
         addStock("SYY", "Sysco Corporation");
         addStock("T", "AT&amp;T INC.");
         addStock("TAP", "Molson Coors Brewing Company");
+        addStock("TCS", "JPMorgan Chase Bank, N.A.");
         addStock("TDC", "Teradata Corporation");
         addStock("TDG", "TransDigm Group Incorporated");
         addStock("TEL", "TE Connectivity Ltd.");
@@ -3114,6 +3148,7 @@ function SpbStockList() {
         addStock("TJX", "The TJX Companies, Inc.");
         addStock("TMK", "Torchmark Corporation");
         addStock("TMO", "Thermo Fisher Scientific Inc.");
+        addStock("TOT", "JPMorgan Chase Bank, N.A.");
         addStock("TPR", "Tapestry, Inc.");
         addStock("TRIP", "TripAdvisor, Inc.");
         addStock("TROW", "T. Rowe Price Group, Inc.");
@@ -3124,7 +3159,6 @@ function SpbStockList() {
         addStock("TSS", "Total System Services, Inc.");
         addStock("TTM", "Citibank, N.A.");
         addStock("TWTR", "Twitter, Inc.&nbsp;");
-        addStock("TWX", "Time Warner Inc.");
         addStock("TXN", "Texas Instruments Incorporated");
         addStock("TXT", "Textron Inc.");
         addStock("UA", "Under Armour, Inc.");
@@ -3142,6 +3176,7 @@ function SpbStockList() {
         addStock("USB", "U.S. Bancorp");
         addStock("UTX", "United Technologies Corporation");
         addStock("V", "Visa Inc.");
+        addStock("VALE", "Citibank, N.A.");
         addStock("VAR", "Varian Medical Systems, Inc.");
         addStock("VEON", "The Bank of New York Mellon");
         addStock("VFC", "V.F. Corporation");
@@ -3154,6 +3189,7 @@ function SpbStockList() {
         addStock("VRSN", "VeriSign, Inc.");
         addStock("VRTX", "Vertex Pharmaceuticals Incorporated");
         addStock("undefined", "VTB Capital S.A.");
+        addStock("undefined", "VTB Eurasia Designated Activity Company");
         addStock("VTR", "Ventas, Inc.");
         addStock("VZ", "Verizon Communications Inc.");
         addStock("WAT", "Waters Corporation");
@@ -3161,30 +3197,13 @@ function SpbStockList() {
         addStock("WBA", "Walgreens Boots Alliance, Inc.");
         addStock("WDC", "Western Digital Corporation");
         addStock("WEC", "WEC Energy Group, Inc.");
+        addStock("WELL", "Welltower Inc.");
         addStock("WFC", "Wells Fargo &amp; Company");
+        addStock("WH", "Wyndham Hotels &amp; Resorts, Inc.");
         addStock("WHR", "Whirlpool Corporation");
         addStock("WLTW", "Willis Towers Watson Public Limited Company");
         addStock("WM", "Waste Management, Inc.");
         addStock("WMB", "The Williams Companies, Inc.");
-        addStock("WMT", "Wal-Mart Stores, Inc.");
-        addStock("WRK", "WestRock Company");
-        addStock("WU", "The Western Union Company");
-        addStock("WY", "Weyerhaeuser Company");
-        addStock("WYN", "Wyndham Worldwide Corporation");
-        addStock("WYNN", "Wynn Resorts, Limited");
-        addStock("XEC", "Cimarex Energy Co.");
-        addStock("XEL", "Xcel Energy Inc.");
-        addStock("XL", "XL Group Ltd.");
-        addStock("XLNX", "Xilinx, Inc.");
-        addStock("XOM", "Exxon Mobil Corporation");
-        addStock("XRAY", "DENTSPLY SIRONA Inc.");
-        addStock("XRX", "Xerox Corporation");
-        addStock("XYL", "Xylem Inc.");
-        addStock("YUM", "Yum! Brands, Inc.");
-        addStock("YY", "Deutsche Bank Trust Company Americas");
-        addStock("ZBH", "Zimmer Biomet Holdings, Inc.");
-        addStock("ZION", "Zions Bancorporation");
-        addStock("ZTS", "Zoetis Inc.");
     }
 
     function addStock(shortName, name) {
@@ -4544,7 +4563,7 @@ function InvestingStocksMainInfoUpdater(LocalStorageHelper, InvestingConsts, Dig
         debugger;
 
         return Promise.resolve();
-        //return $.post('http://localhost/investing/save', data);
+        //return $.post('http://localhost/investing/save', {stocks: data});
     }
 }
 

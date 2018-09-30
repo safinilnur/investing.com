@@ -10,19 +10,25 @@ function GetSpbStockList() {
         var data = [];
         var urls = [];
 
+        // pages 01-09
         for (var i=1; i<10; i++){
             var url = 'ctl00$BXContent$iii$pager$ctl00$ctl0'+i;
             urls.push(url);
         }
+
+        // pages 10-20
         for (var i=10; i<21; i++){
             var url = 'ctl00$BXContent$iii$pager$ctl00$ctl'+i;
             urls.push(url);
         }
+
+        // pages 22-29
         for (var i=2; i<10; i++){
             var url = 'ctl00$BXContent$iii$pager$ctl00$ctl0'+i;
             urls.push(url);
         }
-        for (var i=10; i<17; i++){
+        // pages 30-38
+        for (var i=10; i<19; i++){
             var url = 'ctl00$BXContent$iii$pager$ctl00$ctl'+i;
             urls.push(url);
         }
@@ -32,13 +38,14 @@ function GetSpbStockList() {
     }
 
     function urlsCollectedCallback(data){
-        data = data.filter(e=> e.name);
+        debugger;
+        data = data.filter(e=> e.name && e.shortName);
 
         console.log(data);
 
         var scriptStockCreator = "";
         data.forEach((stock)=>{
-            scriptStockCreator += "addStock(\""+stock.shortName+"\", \""+stock.name+"\");\n";
+            scriptStockCreator += "addStock(\""+stock.shortName+"\", \""+stock.name.replace(`"`,`\"`)+"\");\n";
         })
         console.log(scriptStockCreator);
     }

@@ -549,6 +549,27 @@ function SpbStockList(){
         addStock("WLTW", "Willis Towers Watson Public Limited Company");
         addStock("WM", "Waste Management, Inc.");
         addStock("WMB", "The Williams Companies, Inc.");
+        addStock("WMT", "Walmart Inc.");
+        addStock("WRK", "WestRock Company");
+        addStock("WU", "The Western Union Company");
+        addStock("WY", "Weyerhaeuser Company");
+        addStock("WYND", "Wyndham Destinations, Inc.");
+        addStock("WYNN", "Wynn Resorts, Limited");
+        addStock("XEC", "Cimarex Energy Co.");
+        addStock("XEL", "Xcel Energy Inc.");
+        addStock("XLNX", "Xilinx, Inc.");
+        addStock("XOM", "Exxon Mobil Corporation");
+        addStock("XRAY", "DENTSPLY SIRONA Inc.");
+        addStock("XRX", "Xerox Corporation");
+        addStock("XYL", "Xylem Inc.");
+        addStock("YUM", "Yum! Brands, Inc.");
+        addStock("YY", "Deutsche Bank Trust Company Americas");
+        addStock("ZBH", "Zimmer Biomet Holdings, Inc.");
+        addStock("ZION", "Zions Bancorporation");
+        addStock("ZNH", "The Bank of New York Mellon");
+        addStock("ZTS", "Zoetis Inc.");
+
+
 
     }
 
