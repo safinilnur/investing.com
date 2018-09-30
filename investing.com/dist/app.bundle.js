@@ -106,6 +106,8 @@ function registerInfrastructure() {
     __webpack_require__(30);
     __webpack_require__(31);
     __webpack_require__(32);
+    __webpack_require__(33);
+    __webpack_require__(34);
 
     //_investStocks.ctx.get('StocksByDayUpdater').update();
 
@@ -2549,7 +2551,7 @@ function GetSpbStockList() {
 
     this.getAllStocks = getAllStocks;
 
-    function getAllStocks() {
+    function getAllStocks(successCallback) {
         var data = [];
         var urls = [];
 
@@ -2577,20 +2579,31 @@ function GetSpbStockList() {
         }
 
         appendStocksData(data);
-        collectByUrls(urls, data, urlsCollectedCallback);
+
+        var callback = function callback(data) {
+            urlsCollectedCallback(data, successCallback);
+        };
+
+        collectByUrls(urls, data, callback);
     }
 
-    function urlsCollectedCallback(data) {
+    function urlsCollectedCallback(data, successCallback) {
         debugger;
         data = data.filter(function (e) {
             return e.name && e.shortName;
         });
 
+        successCallback(data);
+
+        displayDataInConsole(data);
+    }
+
+    function displayDataInConsole() {
         console.log(data);
 
         var scriptStockCreator = "";
         data.forEach(function (stock) {
-            scriptStockCreator += "addStock(\"" + stock.shortName + "\", \"" + stock.name.replace('"', '"') + "\");\n";
+            scriptStockCreator += 'addStock(`' + stock.shortName + '`, `' + stock.name + '`);\n';
         });
         console.log(scriptStockCreator);
     }
@@ -2670,7 +2683,7 @@ function SpbStockList() {
         addStock("AAL", "American Airlines Group Inc.");
         addStock("AAP", "Advance Auto Parts, Inc.");
         addStock("AAPL", "Apple Inc.");
-        addStock("ABBN", "Акционерное общество \"Банк Астаны\"");
+        addStock("ABBN", "\u0410\u043A\u0446\u0438\u043E\u043D\u0435\u0440\u043D\u043E\u0435 \u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E \"\u0411\u0430\u043D\u043A \u0410\u0441\u0442\u0430\u043D\u044B\"");
         addStock("ABBV", "AbbVie Inc.");
         addStock("ABT", "Abbott Laboratories");
         addStock("ACH", "The Bank of New York Mellon");
@@ -2691,9 +2704,8 @@ function SpbStockList() {
         addStock("AIZ", "Assurant, Inc.");
         addStock("AJG", "Arthur J. Gallagher &amp; Co.");
         addStock("AKAM", "Akamai Technologies, Inc.");
-        addStock("AKZM", "“Aktobe Metalware Plant” JSC");
+        addStock("AKZM", "\u201CAktobe Metalware Plant\u201D JSC");
         addStock("ALB", "Albemarle Corporation");
-        addStock("undefined", "Alfa Bond Issuance PLC");
         addStock("ALGN", "Align Technology, Inc.");
         addStock("ALK", "Alaska Air Group, Inc.");
         addStock("ALL", "The Allstate Corporation");
@@ -2731,7 +2743,7 @@ function SpbStockList() {
         addStock("BA", "THE BOEING COMPANY");
         addStock("BABA", "Citibank, N.A.");
         addStock("BAC", "Bank of America Corporation");
-        addStock("BAST", "JSC “BAST”");
+        addStock("BAST", "JSC \u201CBAST\u201D");
         addStock("BAX", "Baxter International Inc.");
         addStock("BBBY", "Bed Bath &amp; Beyond Inc.");
         addStock("BBT", "BB&amp;T Corporation");
@@ -2815,8 +2827,8 @@ function SpbStockList() {
         addStock("DHI", "D.R. Horton, Inc.");
         addStock("DHR", "Danaher Corporation");
         addStock("DIS", "The Walt Disney Company");
-        addStock("DISCA", "Discovery, Inс.");
-        addStock("DISCK", "Discovery, Inс.");
+        addStock("DISCA", "Discovery, In\u0441.");
+        addStock("DISCK", "Discovery, In\u0441.");
         addStock("DLPH", "Delphi Technologies PLC");
         addStock("DLR", "Digital Realty Trust, Inc.");
         addStock("DLTR", "Dollar Tree, Inc.");
@@ -2846,7 +2858,6 @@ function SpbStockList() {
         addStock("ETN", "Eaton Corporation plc");
         addStock("ETP", "Energy Transfer Partners, L.P.");
         addStock("EVHC", "Envision Healthcare Corporation");
-        addStock("undefined", "Evraz Group S.A.");
         addStock("EW", "Edwards Lifesciences Corporation");
         addStock("EXC", "Exelon Corporation");
         addStock("EXPD", "Expeditors International of Washington, Inc.");
@@ -2873,23 +2884,16 @@ function SpbStockList() {
         addStock("FTI", "TechnipFMC plc");
         addStock("FTR", "Frontier Communications Corporation");
         addStock("FTV", "Fortive Corporation");
-        addStock("undefined", "Gaz Capital S.A.");
-        addStock("undefined", "Gaz Capital S.A.");
-        addStock("undefined", "Gaz Capital S.A.");
         addStock("GD", "General Dynamics Corporation");
         addStock("GE", "General Electric Company");
         addStock("GILD", "GILEAD SCIENCES, INC.");
         addStock("GIS", "General Mills, Inc.");
         addStock("GLW", "Corning Incorporated");
         addStock("GM", "General Motors Company");
-        addStock("undefined", "MMC Finance Designated Activity Company");
         addStock("GOOG", "Alphabet Inc.");
         addStock("GOOGL", "Alphabet Inc.");
-        addStock("undefined", "GPB Eurobond Finance Plc");
         addStock("GPC", "Genuine Parts Company");
         addStock("GPN", "Global Payments Inc.");
-        addStock("undefined", "GPN Capital S.A.");
-        addStock("undefined", "GPN Capital S.A.");
         addStock("GPS", "The Gap, Inc.");
         addStock("GRMN", "Garmin Ltd.");
         addStock("GS", "The Goldman Sachs Group, Inc.");
@@ -3015,7 +3019,6 @@ function SpbStockList() {
         addStock("MSI", "Motorola Solutions, Inc.");
         addStock("MTB", "M&amp;T Bank Corporation");
         addStock("MTD", "Mettler-Toledo International Inc.");
-        addStock("undefined", "MTS International Funding DAC");
         addStock("MU", "Micron Technology, Inc.");
         addStock("MUR", "Murphy Oil Corporation");
         addStock("MYL", "Mylan N.V.");
@@ -3037,8 +3040,6 @@ function SpbStockList() {
         addStock("NTRS", "Northern Trust Corporation");
         addStock("NUE", "Nucor Corporation");
         addStock("NVDA", "NVIDIA Corporation");
-        addStock("undefined", "Novatek Finance Designated Activity Company");
-        addStock("undefined", "Novatek Finance Designated Activity Company");
         addStock("NWL", "Newell Brands Inc.");
         addStock("NWS", "News Corporation");
         addStock("NWSA", "News Corporation");
@@ -3096,17 +3097,14 @@ function SpbStockList() {
         addStock("RL", "Ralph Lauren Corporation");
         addStock("ROK", "Rockwell Automation, Inc.");
         addStock("ROP", "Roper Technologies, Inc.");
-        addStock("undefined", "Rosneft International Finance Designated Activity Company");
         addStock("ROST", "Ross Stores, Inc.");
         addStock("RRC", "Range Resources Corporation");
         addStock("RSG", "Republic Services, Inc.");
-        addStock("undefined", "RSHB Capital S.A.");
         addStock("RTN", "Raytheon Company");
         addStock("SBUX", "Starbucks Corporation");
         addStock("SCG", "SCANA Corporation");
         addStock("SCHW", "The Charles Schwab Corporation");
         addStock("SEE", "Sealed Air Corporation");
-        addStock("undefined", "Societe Generale  S.A.");
         addStock("SHI", "The Bank of New York Mellon");
         addStock("SHPG", "Citibank, N.A.");
         addStock("SHW", "The Sherwin-Williams Company");
@@ -3188,8 +3186,6 @@ function SpbStockList() {
         addStock("VRSK", "Verisk Analytics, Inc.");
         addStock("VRSN", "VeriSign, Inc.");
         addStock("VRTX", "Vertex Pharmaceuticals Incorporated");
-        addStock("undefined", "VTB Capital S.A.");
-        addStock("undefined", "VTB Eurasia Designated Activity Company");
         addStock("VTR", "Ventas, Inc.");
         addStock("VZ", "Verizon Communications Inc.");
         addStock("WAT", "Waters Corporation");
@@ -3204,6 +3200,25 @@ function SpbStockList() {
         addStock("WLTW", "Willis Towers Watson Public Limited Company");
         addStock("WM", "Waste Management, Inc.");
         addStock("WMB", "The Williams Companies, Inc.");
+        addStock("WMT", "Walmart Inc.");
+        addStock("WRK", "WestRock Company");
+        addStock("WU", "The Western Union Company");
+        addStock("WY", "Weyerhaeuser Company");
+        addStock("WYND", "Wyndham Destinations, Inc.");
+        addStock("WYNN", "Wynn Resorts, Limited");
+        addStock("XEC", "Cimarex Energy Co.");
+        addStock("XEL", "Xcel Energy Inc.");
+        addStock("XLNX", "Xilinx, Inc.");
+        addStock("XOM", "Exxon Mobil Corporation");
+        addStock("XRAY", "DENTSPLY SIRONA Inc.");
+        addStock("XRX", "Xerox Corporation");
+        addStock("XYL", "Xylem Inc.");
+        addStock("YUM", "Yum! Brands, Inc.");
+        addStock("YY", "Deutsche Bank Trust Company Americas");
+        addStock("ZBH", "Zimmer Biomet Holdings, Inc.");
+        addStock("ZION", "Zions Bancorporation");
+        addStock("ZNH", "The Bank of New York Mellon");
+        addStock("ZTS", "Zoetis Inc.");
     }
 
     function addStock(shortName, name) {
@@ -4564,6 +4579,53 @@ function InvestingStocksMainInfoUpdater(LocalStorageHelper, InvestingConsts, Dig
 
         return Promise.resolve();
         //return $.post('http://localhost/investing/save', {stocks: data});
+    }
+}
+
+/***/ }),
+/* 33 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("ServerAjaxCaller").asProto().asCtor(serverAjaxCaller).dependencies();
+
+function serverAjaxCaller() {
+    this.updateSbpStocksMainList = updateSbpStocksMainList;
+
+    var baseUrl = 'http://localhost:12345/';
+
+    function updateSbpStocksMainList(data) {
+        sendData('saveSpbStocks', { spbStocks: data });
+    }
+
+    function sendData(url, data) {
+        $.post(baseUrl + url, data).then(function () {
+            console.log('successfully sent POST request ' + url);
+        });
+    }
+}
+
+/***/ }),
+/* 34 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("spbStocksMainInfoUpdater").asProto().asCtor(spbStocksMainInfoUpdater).dependencies("GetSpbStockList, ServerAjaxCaller");
+
+function spbStocksMainInfoUpdater(GetSpbStockList, ServerAjaxCaller) {
+    this.update = update;
+
+    function update() {
+        GetSpbStockList.getAllStocks(sendDataToServer);
+    };
+
+    function sendDataToServer(data) {
+        debugger;
+        ServerAjaxCaller.updateSbpStocksMainList(data);
     }
 }
 

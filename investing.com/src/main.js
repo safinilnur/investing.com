@@ -35,6 +35,8 @@ function registerInfrastructure(){
     require('./investing/consts/InvestingConsts');
     require('./investing/services/stocksByDayUpdater');
     require('./investing/services/investingStocksMainInfoUpdater');
+    require('./server/serverAjaxCaller');
+    require('./spbexchange.ru/spbStocksMainInfoUpdater');
 
     //_investStocks.ctx.get('StocksByDayUpdater').update();
 

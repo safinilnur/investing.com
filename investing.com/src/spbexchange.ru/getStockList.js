@@ -6,7 +6,7 @@ function GetSpbStockList() {
 
     this.getAllStocks = getAllStocks;
 
-    function getAllStocks(){
+    function getAllStocks(successCallback){
         var data = [];
         var urls = [];
 
@@ -34,19 +34,31 @@ function GetSpbStockList() {
         }
 
         appendStocksData(data);
-        collectByUrls(urls, data, urlsCollectedCallback);
+
+        var callback = (data)=>{
+            urlsCollectedCallback(data, successCallback);
+        };
+
+        collectByUrls(urls, data, callback);
     }
 
-    function urlsCollectedCallback(data){
+    function urlsCollectedCallback(data, successCallback){
         debugger;
         data = data.filter(e=> e.name && e.shortName);
 
+        successCallback(data);
+
+        displayDataInConsole(data);
+    }
+
+    function displayDataInConsole(data){
         console.log(data);
 
         var scriptStockCreator = "";
         data.forEach((stock)=>{
-            scriptStockCreator += "addStock(\""+stock.shortName+"\", \""+stock.name.replace(`"`,`\"`)+"\");\n";
-        })
+            scriptStockCreator += `addStock(\`${stock.shortName}\`, \`${stock.name}\`);
+`;
+        });
         console.log(scriptStockCreator);
     }
 
