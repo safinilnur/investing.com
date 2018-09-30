@@ -33,6 +33,10 @@ function registerInfrastructure(){
     require('./investing/userData/allUsaStocks');
     require('./investing/favouriteStocksAnalyzer/favouriteStockFiltering');
     require('./investing/consts/InvestingConsts');
+    require('./investing/services/stocksByDayUpdater');
+    require('./investing/services/investingStocksMainInfoUpdater');
+
+    //_investStocks.ctx.get('StocksByDayUpdater').update();
 
     _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
     _investStocks.ctx.get('InvestingAvailablefunctions').getAll();

@@ -75,8 +75,6 @@ function registerInfrastructure() {
 
     __webpack_require__(1);
 
-    var ctx = _investStocks.ctx;
-
     __webpack_require__(3);
     __webpack_require__(4);
     __webpack_require__(5);
@@ -106,6 +104,10 @@ function registerInfrastructure() {
     __webpack_require__(28);
     __webpack_require__(29);
     __webpack_require__(30);
+    __webpack_require__(31);
+    __webpack_require__(32);
+
+    //_investStocks.ctx.get('StocksByDayUpdater').update();
 
     _investStocks.ctx.get('FavouriteStocksAnalyzer').loadData();
     _investStocks.ctx.get('InvestingAvailablefunctions').getAll();
@@ -4403,6 +4405,148 @@ var InvestingConsts = {
 };
 
 _investStocks.ctx.register("InvestingConsts").asInstance(InvestingConsts);
+
+/***/ }),
+/* 31 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("StocksByDayUpdater").asProto().asCtor(StocksByDayUpdater).dependencies("LocalStorageHelper, InvestingConsts, DigitsHelper");
+
+function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
+    this.update = update;
+
+    var statistics = null;
+
+    function update() {
+        statistics = LocalStorageHelper.get(InvestingConsts.favouriteStocksStatisticsLocalStorageKey);
+
+        if (statistics.filter(function (e) {
+            return !e.investingStockId;
+        }).length) {
+            console.log('Stocks without id: ', statistics.filter(function (e) {
+                return !e.investingStockId;
+            }));
+            throw new Error('Not all stocks contain investingStockId property!');
+        }
+
+        if (statistics.filter(function (e) {
+            return !e.shortName;
+        }).length) {
+            console.log('Stocks without shortName: ', statistics.filter(function (e) {
+                return !e.shortName;
+            }));
+            throw new Error('Not all stocks contain shortName property!');
+        }
+
+        getMainPromiseForSavingStockData(0);
+    }
+
+    function getMainPromiseForSavingStockData(index) {
+        if (index === statistics.length) {
+            return Promise.resolve();
+        }
+
+        return getStockInfo(statistics[index]).then(saveStockInfoToServer).then(function () {
+            return getMainPromiseForSavingStockData(index + 1);
+        });
+    }
+
+    function getStockInfo(stock) {
+        return Promise.resolve().then(function () {
+            var jQueryRequest = $.post('https://ru.investing.com/instruments/HistoricalDataAjax', {
+                "curr_id": stock.investingStockId,
+                "st_date": '01/01/2010',
+                "end_date": '01/01/2030',
+                "interval_sec": 'Daily',
+                "action": 'historical_data'
+            });
+
+            return Promise.resolve().then(function () {
+                return jQueryRequest;
+            }).then(function (htmlData) {
+                return parseStockHtml(stock, htmlData);
+            });
+        });
+    }
+
+    function parseStockHtml(stock, htmlData) {
+        var resultDataArray = [];
+        var trs = $(htmlData).find('.historicalTbl tbody tr');
+
+        for (var i = 0; i < trs.length; i++) {
+            var tr = $(trs[i]);
+
+            var dataToParse = {
+                shortName: stock.shortName,
+                date: tr.find('td:eq(0)').text(),
+                priceClosed: DigitsHelper.toFloat(tr.find('td:eq(1)').text()),
+                priceOpened: DigitsHelper.toFloat(tr.find('td:eq(2)').text()),
+                priceMax: DigitsHelper.toFloat(tr.find('td:eq(3)').text()),
+                priceMin: DigitsHelper.toFloat(tr.find('td:eq(4)').text()),
+                volume: getVolume(tr.find('td:eq(5)').text())
+            };
+
+            resultDataArray.push(dataToParse);
+        }
+
+        console.log("got stock info for index=" + statistics.indexOf(stock) + " NAME=" + stock.shortName);
+        return Promise.resolve(resultDataArray);
+    }
+
+    function getVolume(textValue) {
+        if (textValue.includes('M')) {
+            return DigitsHelper.toFloat(textValue.replace('M', '')) * 1000000;
+        } else if (textValue.includes('K')) {
+            return DigitsHelper.toFloat(textValue.replace('K', '')) * 1000;
+        } else if (textValue === '-') {
+            return 0;
+        } else {
+            throw new Error("Couldn't parse volume: " + textValue);
+        }
+    }
+
+    function saveStockInfoToServer(stockData) {
+        return Promise.resolve();
+        //return $.post('http://localhost/investing/save', stockData);
+    }
+}
+
+/***/ }),
+/* 32 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("InvestingStocksMainInfoUpdater").asProto().asCtor(InvestingStocksMainInfoUpdater).dependencies("LocalStorageHelper, InvestingConsts, DigitsHelper");
+
+function InvestingStocksMainInfoUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
+    this.update = update;
+
+    var statistics = null;
+
+    function update() {
+        statistics = LocalStorageHelper.get(InvestingConsts.favouriteStocksStatisticsLocalStorageKey);
+
+        var data = statistics.map(function (stock) {
+            return {
+                shortName: stock.shortName,
+                urlId: stock.id,
+                investingStockId: stock.investingStockId,
+                name: stock.name,
+                reportDate: stock.reportDate
+            };
+        });
+
+        debugger;
+
+        return Promise.resolve();
+        //return $.post('http://localhost/investing/save', data);
+    }
+}
 
 /***/ })
 /******/ ]);
