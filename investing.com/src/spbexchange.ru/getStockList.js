@@ -43,10 +43,9 @@ function GetSpbStockList() {
     }
 
     function urlsCollectedCallback(data, successCallback){
-        debugger;
         data = data.filter(e=> e.name && e.shortName);
 
-        successCallback(data);
+        successCallback({stocks: data});
 
         displayDataInConsole(data);
     }

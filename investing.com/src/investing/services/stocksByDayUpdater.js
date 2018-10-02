@@ -1,8 +1,8 @@
 _investStocks.ctx.register("StocksByDayUpdater")
     .asProto()
-    .asCtor(StocksByDayUpdater).dependencies("LocalStorageHelper, InvestingConsts, DigitsHelper");
+    .asCtor(StocksByDayUpdater).dependencies("LocalStorageHelper, InvestingConsts, DigitsHelper, ServerAjaxCaller");
 
-function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
+function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper, ServerAjaxCaller) {
     this.update = update;
 
     var statistics = null;
@@ -58,10 +58,10 @@ function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
             const dataToParse = {
                 shortName: stock.shortName,
                 date: tr.find('td:eq(0)').text(),
-                priceClosed: DigitsHelper.toFloat(tr.find('td:eq(1)').text()),
-                priceOpened: DigitsHelper.toFloat(tr.find('td:eq(2)').text()),
-                priceMax: DigitsHelper.toFloat(tr.find('td:eq(3)').text()),
-                priceMin: DigitsHelper.toFloat(tr.find('td:eq(4)').text()),
+                priceClosed: getPrice(tr.find('td:eq(1)')),
+                priceOpened: getPrice(tr.find('td:eq(2)')),
+                priceMax: getPrice(tr.find('td:eq(3)')),
+                priceMin: getPrice(tr.find('td:eq(4)')),
                 volume: getVolume(tr.find('td:eq(5)').text())
             };
 
@@ -70,6 +70,13 @@ function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
 
         console.log(`got stock info for index=${statistics.indexOf(stock)} NAME=${stock.shortName}`);
         return Promise.resolve(resultDataArray);
+    }
+
+    function getPrice(td){
+        var priceString = td.text();
+        priceString = priceString.replace('.','').replace(',','.');
+
+        return DigitsHelper.toFloat(priceString);
     }
 
     function getVolume(textValue) {
@@ -85,7 +92,18 @@ function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
     }
 
     function saveStockInfoToServer(stockData) {
-        return Promise.resolve();
-        //return $.post('http://localhost/investing/save', stockData);
+        debugger;
+        splitArrayToChunks(stockData,100).map(chunk=>{
+            return ServerAjaxCaller.sendHistoricalDataByDay({stocks: chunk});
+        });
+
+    }
+
+    function splitArrayToChunks(array, chunkSize){
+        return [].concat.apply([],
+            array.map(function(elem,i) {
+                return i%chunkSize ? [] : [array.slice(i,i+chunkSize)];
+            })
+        );
     }
 }

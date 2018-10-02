@@ -108,6 +108,7 @@ function registerInfrastructure() {
     __webpack_require__(32);
     __webpack_require__(33);
     __webpack_require__(34);
+    __webpack_require__(35);
 
     //_investStocks.ctx.get('StocksByDayUpdater').update();
 
@@ -754,36 +755,41 @@ function FinamStockList() {
 _investStocks.ctx.register("TinkoffStockList").asCtor(TinkoffStockList);
 
 function TinkoffStockList() {
-    this.getStocks = getStocks;
-    this.getByName = getByName;
-    this.getByShortName = getByShortName;
+    this.collectStocks = collectStocks;
 
-    var _stocks = [];
+    function collectStocks() {
+        // https://www.tinkoff.ru/invest/stocks/?country=Foreign
 
-    function getStocks() {
-        return _stocks;
+        clickBtn(allStocksLoadedCallback);
     }
 
-    function getByName(name) {
-        return _stocks.find(function (s) {
-            return s.name == name;
-        });
+    function clickBtn(allStocksLoadedCallback) {
+        var btnSelector = 'body > div.application > div > div > div.PlatformLayout__layoutPage_WoIKN > div.PortalContainer__container_lyBzt > div.UILayoutPage__page_19-Kp > div:nth-child(2) > div.PlatformLayout__layoutPageComponent_3W4dc > div > div.ui-trading-stocks.ui-trading-stocks_row > div:nth-child(2) > div:nth-child(2) > a > span.ui-button__text';
+        if ($(btnSelector).length) {
+            $(btnSelector).trigger('click');
+            setTimeout(clickBtn, 1000);
+        } else {
+            allStocksLoadedCallback();
+        }
     }
 
-    function getByShortName(name) {
-        return _stocks.find(function (s) {
-            return s.shortName == name;
-        });
-    }
+    function allStocksLoadedCallback() {
+        window.stockTickers = {};
 
-    function ctor() {
-        addStock("BA", "Boeing");
-    }
+        var stockHrefs = $('[href*="/invest/stocks/"]');
+        for (var i = 0; i < stockHrefs.length; i++) {
+            var ticker = $(stockHrefs[i]).attr('href');
+            if (ticker.startsWith('/invest/stocks/') && ticker.endsWith('/')) {
+                ticker = ticker.replace('/invest/stocks/', '').replace('/', '');
 
-    function addStock(shortName, name) {
-        _stocks.push({ name: name, shortName: shortName });
+                stockTickers[ticker] = true;
+            }
+        }
+
+        var tickersArray = Object.keys(stockTickers);
+
+        // To be continued ...
     }
-    ctor();
 }
 
 /***/ }),
@@ -1794,7 +1800,6 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         item.stockPrice = getStockPrice();
         item.yearRate = getYearRate();
         item.reportDate = getReportDate();
-        debugger;
         item.investingStockId = getStockId();
         item.shortName = getStockShortName();
 
@@ -2588,17 +2593,16 @@ function GetSpbStockList() {
     }
 
     function urlsCollectedCallback(data, successCallback) {
-        debugger;
         data = data.filter(function (e) {
             return e.name && e.shortName;
         });
 
-        successCallback(data);
+        successCallback({ stocks: data });
 
         displayDataInConsole(data);
     }
 
-    function displayDataInConsole() {
+    function displayDataInConsole(data) {
         console.log(data);
 
         var scriptStockCreator = "";
@@ -3234,9 +3238,9 @@ function SpbStockList() {
 "use strict";
 
 
-_investStocks.ctx.register("InvestingStockListRetreiver").asCtor(InvestingStockListRetreiver).dependencies("LocalStorageHelper");
+_investStocks.ctx.register("InvestingStockListRetreiver").asCtor(InvestingStockListRetreiver).dependencies("LocalStorageHelper, ServerAjaxCaller");
 
-function InvestingStockListRetreiver(LocalStorageHelper) {
+function InvestingStockListRetreiver(LocalStorageHelper, ServerAjaxCaller) {
     this.getAllUsaStocks = getAllUsaStocks;
     this.runGetAllUsaStocksTask = runGetAllUsaStocksTask;
 
@@ -3246,9 +3250,21 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
         }
 
         var data = collectStockUrlsataFromPage();
-        LocalStorageHelper.set("StockBaseInfoToCollect", data);
 
-        runGetAllUsaStocksTask();
+        if (data.length < 1000) console.error('Not all usa stocks were chosen');
+
+        ServerAjaxCaller.getInvestingStocksList().then(function (stocks) {
+            debugger;
+            data = data.filter(function (e) {
+                return stocks.find(function (s) {
+                    return s.urlId === e.urlId;
+                });
+            });
+
+            LocalStorageHelper.set("StockBaseInfoToCollect", data);
+
+            runGetAllUsaStocksTask();
+        });
     }
 
     function runGetAllUsaStocksTask() {
@@ -3260,8 +3276,11 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
 
         if (stockToCollect) {
             if (location.href.includes(stockToCollect.url)) {
+                debugger;
+
                 stockToCollect.shortName = getShortName();
                 stockToCollect.dataCollected = true;
+                stockToCollect.investingStockId = getStockId();
 
                 LocalStorageHelper.set("StockBaseInfoToCollect", stocks);
 
@@ -3271,12 +3290,29 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
             }
         } else {
             if (stocks && stocks.length) {
+                console.log(stocks);
+                debugger;
+
+                ServerAjaxCaller.saveInvestingStocksList(prepareStocksForSendingToServer(stocks));
+
                 var jsCode = jsStocksCreator(stocks);
                 console.log(jsCode);
 
                 LocalStorageHelper.remove("StockBaseInfoToCollect");
             }
         }
+    }
+
+    function prepareStocksForSendingToServer(stocks) {
+        stocks = stocks.map(function (s) {
+            return {
+                shortName: s.shortName,
+                investingStockId: s.investingStockId,
+                urlId: s.url
+            };
+        });
+
+        return { stocks: stocks };
     }
 
     function jsStocksCreator(stocks) {
@@ -3293,6 +3329,9 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
 
     function getShortName() {
         return $('[itemprop="tickerSymbol"]').attr('content');
+    }
+    function getStockId() {
+        return parseInt($('[data-pair-id!=""]:[data-pair-id]').attr('data-pair-id'));
     }
 
     function collectStockUrlsataFromPage() {
@@ -4447,9 +4486,9 @@ _investStocks.ctx.register("InvestingConsts").asInstance(InvestingConsts);
 "use strict";
 
 
-_investStocks.ctx.register("StocksByDayUpdater").asProto().asCtor(StocksByDayUpdater).dependencies("LocalStorageHelper, InvestingConsts, DigitsHelper");
+_investStocks.ctx.register("StocksByDayUpdater").asProto().asCtor(StocksByDayUpdater).dependencies("LocalStorageHelper, InvestingConsts, DigitsHelper, ServerAjaxCaller");
 
-function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
+function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper, ServerAjaxCaller) {
     this.update = update;
 
     var statistics = null;
@@ -4516,10 +4555,10 @@ function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
             var dataToParse = {
                 shortName: stock.shortName,
                 date: tr.find('td:eq(0)').text(),
-                priceClosed: DigitsHelper.toFloat(tr.find('td:eq(1)').text()),
-                priceOpened: DigitsHelper.toFloat(tr.find('td:eq(2)').text()),
-                priceMax: DigitsHelper.toFloat(tr.find('td:eq(3)').text()),
-                priceMin: DigitsHelper.toFloat(tr.find('td:eq(4)').text()),
+                priceClosed: getPrice(tr.find('td:eq(1)')),
+                priceOpened: getPrice(tr.find('td:eq(2)')),
+                priceMax: getPrice(tr.find('td:eq(3)')),
+                priceMin: getPrice(tr.find('td:eq(4)')),
                 volume: getVolume(tr.find('td:eq(5)').text())
             };
 
@@ -4528,6 +4567,13 @@ function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
 
         console.log("got stock info for index=" + statistics.indexOf(stock) + " NAME=" + stock.shortName);
         return Promise.resolve(resultDataArray);
+    }
+
+    function getPrice(td) {
+        var priceString = td.text();
+        priceString = priceString.replace('.', '').replace(',', '.');
+
+        return DigitsHelper.toFloat(priceString);
     }
 
     function getVolume(textValue) {
@@ -4543,8 +4589,16 @@ function StocksByDayUpdater(LocalStorageHelper, InvestingConsts, DigitsHelper) {
     }
 
     function saveStockInfoToServer(stockData) {
-        return Promise.resolve();
-        //return $.post('http://localhost/investing/save', stockData);
+        debugger;
+        splitArrayToChunks(stockData, 100).map(function (chunk) {
+            return ServerAjaxCaller.sendHistoricalDataByDay({ stocks: chunk });
+        });
+    }
+
+    function splitArrayToChunks(array, chunkSize) {
+        return [].concat.apply([], array.map(function (elem, i) {
+            return i % chunkSize ? [] : [array.slice(i, i + chunkSize)];
+        }));
     }
 }
 
@@ -4593,16 +4647,44 @@ _investStocks.ctx.register("ServerAjaxCaller").asProto().asCtor(serverAjaxCaller
 
 function serverAjaxCaller() {
     this.updateSbpStocksMainList = updateSbpStocksMainList;
+    this.sendHistoricalDataByDay = sendHistoricalDataByDay;
+    this.saveInvestingStocksList = saveInvestingStocksList;
+    this.getInvestingStocksList = getInvestingStocksList;
 
-    var baseUrl = 'http://localhost:12345/';
+    var baseUrl = 'https://localhost:13001/api/';
 
     function updateSbpStocksMainList(data) {
-        sendData('saveSpbStocks', { spbStocks: data });
+        post('spbStocks/create', data);
     }
 
-    function sendData(url, data) {
-        $.post(baseUrl + url, data).then(function () {
-            console.log('successfully sent POST request ' + url);
+    function sendHistoricalDataByDay(data) {
+        post('createStocksData', data);
+    }
+
+    function saveInvestingStocksList(data) {
+        post('investingStocks/createInvestingStocks', data);
+    }
+
+    function getInvestingStocksList() {
+        return get('investingStocks/get');
+    }
+
+    function post(url, data) {
+        debugger;
+        return $.ajax({
+            url: baseUrl + url,
+            type: "POST",
+            data: JSON.stringify(data),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json"
+        });
+    }
+
+    function get(url, params) {
+        return $.ajax({
+            url: baseUrl + url,
+            type: "GET",
+            contentType: "application/json; charset=utf-8"
         });
     }
 }
@@ -4626,6 +4708,103 @@ function spbStocksMainInfoUpdater(GetSpbStockList, ServerAjaxCaller) {
     function sendDataToServer(data) {
         debugger;
         ServerAjaxCaller.updateSbpStocksMainList(data);
+    }
+}
+
+/***/ }),
+/* 35 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+_investStocks.ctx.register("StocksMainInfoUpdater").asProto().asCtor(StocksMainInfoUpdater).dependencies("ServerAjaxCaller,LocalStorageHelper, InvestingConsts, DigitsHelper");
+
+function StocksMainInfoUpdater(ServerAjaxCaller, LocalStorageHelper, InvestingConsts, DigitsHelper) {
+    this.update = update;
+
+    var resultArray = [];
+    var setting = null;
+
+    var settings = {
+        london: {
+            page: 'https://ru.investing.com/stock-screener/?sp=country::4|sector::a|industry::a|equityType::a|exchange::3%3Ename_trans;1',
+            exchangeId: 3
+        },
+        nyse: {
+            page: 'https://ru.investing.com/stock-screener/?sp=country::5|sector::a|industry::a|equityType::a|exchange::1%3EviewData.symbol;1',
+            exchangeId: 2
+
+        },
+        nasdaq: {
+            page: 'https://ru.investing.com/stock-screener/?sp=country::5|sector::a|industry::a|equityType::a|exchange::2%3Ename_trans;1',
+            exchangeId: 1
+
+        }
+    };
+
+    function update(type) {
+        debugger;
+        setting = settings[type];
+
+        if (!settings) throw new Error('Неправильно выбрана биржа');
+
+        if (location.href !== setting.page) throw new Error('Для сбора данных перейдите на страницу ' + setting.page);
+
+        goToNextPageAndCollectData();
+    }
+
+    function goToNextPageAndCollectData() {
+        collectInfoFromPage();
+
+        var nextPageButton = $('.blueRightSideArrowPaginationIcon');
+
+        if (nextPageButton.length) {
+            nextPageButton.trigger('click');
+            waitWhileDataIsLoading(goToNextPageAndCollectData);
+        } else {
+            collectInfoFromPage();
+
+            allInfoCollected();
+        }
+    }
+
+    function waitWhileDataIsLoading(callback) {
+        setTimeout(function () {
+            if ($('#resultsTable.searchBlur').length) {
+                waitWhileDataIsLoading(callback);
+            } else {
+                callback();
+            }
+        }, 3000);
+    }
+
+    function allInfoCollected() {
+        ServerAjaxCaller.saveInvestingStocksList({ stocks: resultArray });
+    }
+
+    function collectInfoFromPage() {
+        var intermediateArray = [];
+        var rows = $('#resultsTable tbody tr');
+        for (var i = 0; i < rows.length; i++) {
+            var row = $(rows[i]);
+
+            var stock = {
+                urlId: row.find('.symbol a').attr('href').replace('/equities/', ''),
+                name: row.find('.symbol a').text(),
+                shortName: row.find('[data-column-name="viewData.symbol"]').text(),
+                exchangeId: setting.exchangeId
+            };
+
+            if (!resultArray.find(function (e) {
+                return e.shortName == stock.shortName;
+            })) {
+                resultArray.push(stock);
+                intermediateArray.push(stock);
+            }
+
+            ServerAjaxCaller.saveInvestingStocksList({ stocks: intermediateArray });
+        }
     }
 }
 

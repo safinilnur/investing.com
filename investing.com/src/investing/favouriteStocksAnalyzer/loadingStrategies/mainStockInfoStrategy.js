@@ -44,7 +44,6 @@ function FinamMainStockInfoLoadingStrategy(FinamStockRecommendationTypes, Favour
         item.stockPrice = getStockPrice();
         item.yearRate = getYearRate();
         item.reportDate = getReportDate();
-        debugger;
         item.investingStockId = getStockId();
         item.shortName = getStockShortName();
 

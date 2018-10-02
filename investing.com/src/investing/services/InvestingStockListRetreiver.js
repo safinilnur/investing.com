@@ -1,8 +1,8 @@
 _investStocks.ctx.register("InvestingStockListRetreiver")
     .asCtor(InvestingStockListRetreiver)
-    .dependencies("LocalStorageHelper");
+    .dependencies("LocalStorageHelper, ServerAjaxCaller");
 
-function InvestingStockListRetreiver(LocalStorageHelper) {
+function InvestingStockListRetreiver(LocalStorageHelper, ServerAjaxCaller) {
     this.getAllUsaStocks = getAllUsaStocks;
     this.runGetAllUsaStocksTask = runGetAllUsaStocksTask;
 
@@ -12,9 +12,18 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
         }
 
         var data = collectStockUrlsataFromPage();
-        LocalStorageHelper.set("StockBaseInfoToCollect", data);
 
-        runGetAllUsaStocksTask();
+         if (data.length < 1000)
+             console.error('Not all usa stocks were chosen');
+
+        ServerAjaxCaller.getInvestingStocksList().then(stocks=>{
+            debugger;
+            data = data.filter(e=> stocks.find(s=> s.urlId === e.urlId));
+
+            LocalStorageHelper.set("StockBaseInfoToCollect", data);
+
+            runGetAllUsaStocksTask();
+        });
     }
 
     function runGetAllUsaStocksTask() {
@@ -24,8 +33,11 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
 
         if (stockToCollect){
             if (location.href.includes(stockToCollect.url)){
+                debugger;
+
                 stockToCollect.shortName = getShortName();
                 stockToCollect.dataCollected = true;
+                stockToCollect.investingStockId = getStockId();
 
                 LocalStorageHelper.set("StockBaseInfoToCollect", stocks);
 
@@ -36,12 +48,27 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
             }
         } else{
             if (stocks && stocks.length){
+                console.log(stocks);
+                debugger;
+
+                ServerAjaxCaller.saveInvestingStocksList(prepareStocksForSendingToServer(stocks));
+
                 var jsCode = jsStocksCreator(stocks);
                 console.log(jsCode);
 
                 LocalStorageHelper.remove("StockBaseInfoToCollect");
             }
         }
+    }
+
+    function prepareStocksForSendingToServer(stocks){
+        stocks =  stocks.map(s=>({
+            shortName: s.shortName,
+            investingStockId: s.investingStockId,
+            urlId: s.url,
+        }));
+
+        return {stocks: stocks};
     }
 
     function jsStocksCreator(stocks) {
@@ -58,6 +85,9 @@ function InvestingStockListRetreiver(LocalStorageHelper) {
 
     function getShortName(){
         return $('[itemprop="tickerSymbol"]').attr('content');
+    }
+    function getStockId(){
+        return parseInt($('[data-pair-id!=""]:[data-pair-id]').attr('data-pair-id'));
     }
 
     function collectStockUrlsataFromPage(){

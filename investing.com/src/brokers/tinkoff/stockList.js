@@ -1,31 +1,45 @@
 _investStocks.ctx.register("TinkoffStockList")
     .asCtor(TinkoffStockList);
 
-function TinkoffStockList(){
-    this.getStocks = getStocks;
-    this.getByName = getByName;
-    this.getByShortName = getByShortName;
+function TinkoffStockList() {
+    this.collectStocks = collectStocks;
 
-    let _stocks = [];
 
-    function getStocks(){
-        return _stocks;
+    function collectStocks() {
+        // https://www.tinkoff.ru/invest/stocks/?country=Foreign
+
+        clickBtn(allStocksLoadedCallback);
+
+
     }
 
-    function getByName(name) {
-        return _stocks.find(s=> s.name == name);
+    function clickBtn(allStocksLoadedCallback) {
+        var btnSelector = 'body > div.application > div > div > div.PlatformLayout__layoutPage_WoIKN > div.PortalContainer__container_lyBzt > div.UILayoutPage__page_19-Kp > div:nth-child(2) > div.PlatformLayout__layoutPageComponent_3W4dc > div > div.ui-trading-stocks.ui-trading-stocks_row > div:nth-child(2) > div:nth-child(2) > a > span.ui-button__text';
+        if ($(btnSelector).length){
+            $(btnSelector).trigger('click');
+            setTimeout(clickBtn, 1000);
+        }
+        else{
+            allStocksLoadedCallback();
+        }
     }
 
-    function getByShortName(name) {
-        return _stocks.find(s=> s.shortName == name);
-    }
+    function allStocksLoadedCallback(){
+        window.stockTickers = {};
 
-    function ctor() {
-        addStock("BA", "Boeing");
-    }
+        var stockHrefs = $('[href*="/invest/stocks/"]');
+        for (var i=0; i< stockHrefs.length; i++){
+            var ticker = $(stockHrefs[i]).attr('href');
+            if (ticker.startsWith('/invest/stocks/' ) && ticker.endsWith('/'))
+            {
+                ticker = ticker.replace('/invest/stocks/', '').replace('/','');
 
-    function addStock(shortName, name){
-        _stocks.push({name, shortName});
+                stockTickers[ticker] = true;
+            }
+        }
+
+        var tickersArray = Object.keys(stockTickers);
+
+        // To be continued ...
     }
-    ctor();
 }
